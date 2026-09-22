@@ -1,8 +1,8 @@
 # Simulador de Cubo Mágico 2x2x2 com IA de busca
 
-Trabalho em **C++ (C++17, sem bibliotecas externas)**: um cubo mágico 2x2x2
-jogável no terminal, com visualização colorida em planificação (texto), que
-também se resolve sozinho usando três estratégias de busca:
+Trabalho em **C++ (C++17)**: um cubo mágico 2x2x2 jogável no terminal, com
+visualização colorida em planificação (texto), que também se resolve sozinho
+usando três estratégias de busca:
 
 - **Busca em Largura**
 - **Busca em Profundidade Limitada Iterativa**
@@ -28,6 +28,28 @@ Windows e para Linux/macOS).
 Não há nenhum executável dentro da pasta do projeto — só código-fonte. Gere o
 `.exe` localmente com o comando acima antes de rodar.
 
+### Extra: janela 3D de verdade (opcional)
+
+Esse build acima é **auto-suficiente** (sem bibliotecas de terceiros) e já
+atende tudo o que o enunciado pede. Como extra, existe também uma janela 3D
+de verdade (câmera, rotação, giros animados), usando a biblioteca
+[raylib](https://www.raylib.com/). Ela só entra se você pedir:
+
+```bash
+# instale o raylib uma vez (MSYS2 UCRT64):
+pacman -S mingw-w64-ucrt-x86_64-raylib
+
+# compile o alvo com 3D:
+make 3d
+./cubo2x2-3d.exe
+```
+
+Dentro do programa, a tecla `j` abre a janela 3D (ver `Janela3D.hpp/.cpp`).
+O `.exe` gerado por `make 3d` depende de `raylib.dll` e `glfw3.dll` em tempo
+de execução (ficam em `ucrt64/bin` do MSYS2) — não é um binário standalone.
+Sem o raylib instalado, `make` (sem `3d`) continua funcionando normalmente,
+só sem a tecla `j`.
+
 ### Teclas
 
 Todas valem sem apertar Enter (uma tecla, uma ação):
@@ -40,6 +62,7 @@ Todas valem sem apertar Enter (uma tecla, uma ação):
 | `e` | embaralhar (pede semente e número de movimentos) |
 | `c` | voltar ao estado resolvido |
 | `v` | alternar entre a planificação (6 faces) e a vista de canto (3 faces, pseudo-3D) |
+| `j` | abrir a janela 3D de verdade (só existe se compilado com `make 3d`) |
 | `1` `2` `3` | resolver com Largura / Profundidade Iterativa / A\* |
 | `m` | rodar as três buscas de uma vez e comparar numa tabela |
 | `a` | aplicar a solução encontrada, passo a passo |
@@ -57,8 +80,9 @@ estratégias no mesmo caso (requisito 6 do enunciado).
 | `Fronteira.hpp` | As três estruturas de dados atrás de uma interface comum (classe abstrata `Fronteira`, com `FilaFronteira`, `PilhaFronteira` e `PrioridadeFronteira`) |
 | `Busca.hpp` / `Busca.cpp` | **Função avaliadora** (`ehObjetivo`), **heurística** do A\* (`heuristica`), e **o laço de busca único** (`lacoDeBusca`, estático em `Busca.cpp`), chamado pelas três funções públicas `buscaEmLargura`, `buscaProfundidadeIterativa`, `buscaAEstrela` |
 | `Teclado.hpp` / `Teclado.cpp` | Leitura de uma única tecla, sem precisar de Enter |
+| `Janela3D.hpp` / `Janela3D.cpp` | **Extra** (só em `make 3d`): janela 3D de verdade com raylib — câmera, giros animados, mesma geometria/cores do resto do projeto |
 | `main.cpp` | Laço principal: desenha a tela, lê uma tecla, aplica a ação |
-| `Makefile` | `make` compila tudo; `make clean` apaga o executável |
+| `Makefile` | `make` compila o básico; `make 3d` compila com a janela 3D; `make clean` apaga os executáveis |
 
 ## 1. Estado
 
@@ -217,6 +241,27 @@ perspectiva, só indentação progressiva (`imprimirCuboIso` em `Cubo.cpp`).
 É uma forma barata de olhar de uma vez só para as 3 faces que se manipula,
 sem precisar "traduzir" a planificação toda vez.
 
+## Janela 3D de verdade (extra, `make 3d`)
+
+Diferente da vista de canto acima, esta é uma projeção 3D real, com câmera
+que gira (setas do teclado) e giros animados — implementada com
+[raylib](https://www.raylib.com/) em `Janela3D.cpp`, aberta com a tecla `j`.
+
+A geometria reaproveita as mesmas tabelas de posição/direção dos cantos e a
+mesma tabela `CANTO_FACELET` (exposta em `Cubo.hpp`) que o resto do projeto
+já usa para desenhar o cubo em texto — ou seja, não existe uma segunda
+"versão" do cubo por trás da janela, é literalmente o mesmo `Cubo` sendo
+desenhado de outro jeito.
+
+Cada giro de face é animado girando, ao redor do eixo correspondente
+(U → eixo Y, R → eixo X, F → eixo Z), só as 4 peças daquele lado — usando a
+pilha de matrizes do raylib (`rlPushMatrix`/`rlRotatef`/`rlPopMatrix`) em vez
+de recalcular vértice por vértice à mão. A correção da direção de cada
+animação (todos os 9 movimentos, sentido horário/anti-horário/180°) foi
+conferida comparando, pixel a pixel, o frame final da animação contra uma
+renderização estática do cubo já com o movimento aplicado por `mover()` —
+diferença de no máximo 1 pixel (ruído de ponto flutuante) em todos os casos.
+
 ## Requisitos do enunciado — conferência
 
 1. **Interface** — texto colorido no terminal, mostra o cubo planificado (ou,
@@ -238,3 +283,10 @@ sem precisar "traduzir" a planificação toda vez.
 - Enquanto a Busca em Largura roda em cubos muito embaralhados (17+
   movimentos), o programa fica alguns segundos sem responder — é esperado,
   porque a busca é síncrona (sem threads).
+- A janela 3D (tecla `j`) é só para jogar/visualizar: gira faces, desfaz,
+  reseta e aplica (com animação) a solução que **já foi calculada no
+  console** antes de abrir a janela. Rodar uma busca nova (`1`/`2`/`3`/`m`)
+  só é possível no console — feche a janela (`ESC`) para acessá-las.
+- A janela 3D (`make 3d`) não é standalone: precisa do raylib instalado para
+  compilar, e de `raylib.dll`/`glfw3.dll` em tempo de execução. O build
+  básico (`make`, sem `3d`) não tem essa dependência.

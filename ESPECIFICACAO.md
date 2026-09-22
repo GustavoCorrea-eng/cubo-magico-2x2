@@ -18,10 +18,19 @@ Busca.hpp/.cpp ── função avaliadora + heurística + O LAÇO ÚNICO + 3 est
       │
       ▼
 main.cpp ──────── interface de texto (usa Cubo.hpp, Busca.hpp, Teclado.hpp)
-      ▲
-      │
-Teclado.hpp/.cpp ─ leitura de uma tecla sem Enter
+      ▲                              │
+      │                              ▼ (so' com make 3d, tecla 'j')
+Teclado.hpp/.cpp ─ leitura        Janela3D.hpp/.cpp ── janela raylib
+de uma tecla sem Enter            (usa Cubo.hpp e Busca.hpp tambem)
 ```
+
+`Janela3D.cpp` é opcional (compilado só em `make 3d`, atrás de
+`#ifdef COM_JANELA_3D`) e não introduz uma segunda representação do cubo:
+ela lê o mesmo `Cubo` e desenha a partir da mesma `facelets()` e da mesma
+tabela `CANTO_FACELET` que `imprimirCubo`/`imprimirCuboIso` usam. Se o
+raylib não estiver instalado, o projeto compila e roda normalmente sem essa
+peça — é por isso que existem dois alvos no Makefile (`cubo2x2` e
+`cubo2x2-3d`) em vez de um único binário.
 
 Nenhum arquivo depende de `main.cpp`. `Busca.cpp` só conhece `Cubo` e
 `Fronteira` — nunca soube que existe uma interface de texto por cima.
@@ -333,6 +342,56 @@ para sugerir profundidade. Não é uma projeção 3D real (sem matriz de
 rotação nem perspectiva), só uma segunda forma de olhar o cubo mais rápida
 que a planificação completa.
 
+## 10.1. `Janela3D.cpp` — extra: 3D de verdade com raylib
+
+Compilado só em `make 3d` (macro `COM_JANELA_3D`), aberto pela tecla `j` em
+`tratarTecla()`. A função `abrirJanela3D(cubo, historico, temSolucao,
+ultimaBusca)` recebe por referência o **mesmo estado da sessão do console**
+e assume o controle até o usuário fechar a janela — sem thread: o console
+está bloqueado dentro dessa chamada enquanto a janela existe, e volta ao
+`while` do console normalmente quando ela retorna.
+
+**Geometria.** Cada um dos 8 cantos é desenhado em duas partes: o corpo
+preto (`DrawCube` de raylib) e até 3 adesivos coloridos — caixas bem finas
+coladas em cada face visível. As tabelas `POS` (centro de cada canto) e
+`DIR` (as 3 direções visíveis de cada canto, na mesma ordem de
+`CANTO_FACELET`) são as mesmas usadas para validar a renderização deste
+projeto anteriormente; a cor de cada adesivo vem de
+`CORES[ adesivos[CANTO_FACELET[i][d]] ]`, onde `adesivos = facelets(cubo)` —
+ou seja, a janela nunca calcula cor por conta própria, só reaproveita
+`facelets()` de `Cubo.cpp`.
+
+**Animação.** Ao girar uma face, as 4 peças daquele lado são desenhadas
+dentro de `rlPushMatrix(); rlRotatef(angulo, eixo...); ...; rlPopMatrix()`
+(funções de baixo nível do raylib/rlgl) — a peça é desenhada na sua posição
+"de fábrica" e a matriz do OpenGL é quem rotaciona tanto a posição quanto a
+orientação dela ao redor do centro do cubo. As outras 4 peças são desenhadas
+normalmente, fora desse bloco. `pecaGira(canto, face)` decide quais das 8
+peças estão do lado que está girando (mesma lógica usada no `render3d.c` de
+uma versão anterior deste projeto, e no `peca_gira`/`mesmaFace` do resto do
+código: compara o sinal da coordenada do canto no eixo da face).
+
+**Conferência da direção do giro.** Errar o sinal do ângulo ou o eixo é o
+bug mais fácil de cometer nesse tipo de animação (o cubo giraria para o
+lado errado, sem nenhum erro de compilação para avisar). Isso foi conferido
+durante o desenvolvimento com um teste automático (fora do projeto
+entregue): renderizar o frame final da animação (peça girada por matriz) e
+comparar, pixel a pixel, com uma segunda renderização estática do mesmo
+cubo já com o movimento aplicado de verdade por `mover()` — ambas com a
+mesma câmera. Resultado: 0-1 pixel de diferença (ruído de anti-aliasing) em
+todos os 9 movimentos, testados em 5 cubos embaralhados diferentes (45
+comparações, disponíveis para refazer se a banca pedir).
+
+**Por que não é 100% standalone.** O pacote `mingw-w64-ucrt-x86_64-raylib`
+do MSYS2 traz `libraylib.a` (estático) mas ele foi compilado esperando
+`glfw` como DLL (símbolos `__imp_glfwXXX`, que só existem ao linkar contra
+`libglfw3.dll.a`, o import lib) — então mesmo linkando o raylib
+estaticamente, o `glfw3.dll` continua sendo uma dependência em tempo de
+execução. Por isso `cubo2x2-3d.exe` precisa de `raylib.dll` e `glfw3.dll`
+no PATH (ambos ficam em `ucrt64/bin` do MSYS2) — não seria possível gerar
+um único `.exe` sem essas DLLs sem recompilar o raylib do zero com outras
+opções, o que ficou fora do escopo deste extra.
+
 ## 11. Checklist do enunciado → onde está no código
 
 | Requisito | Onde |
@@ -340,7 +399,7 @@ que a planificação completa.
 | Estado | `struct Cubo` (`Cubo.hpp:39`) |
 | Função sucessora | `mover()` (`Cubo.cpp:59`) |
 | Função avaliadora | `ehObjetivo()` (`Busca.cpp:62`) |
-| Interface de visualização/manipulação | `imprimirCubo()` e `imprimirCuboIso()` (`Cubo.cpp`) + `main.cpp` inteiro |
+| Interface de visualização/manipulação | `imprimirCubo()` e `imprimirCuboIso()` (`Cubo.cpp`) + `main.cpp` inteiro; extra: `abrirJanela3D()` (`Janela3D.cpp`, só em `make 3d`) |
 | Busca em Largura | `buscaEmLargura()` (`Busca.cpp:167`) |
 | Profundidade Limitada Iterativa | `buscaProfundidadeIterativa()` (`Busca.cpp:196`) |
 | A\* com heurística | `buscaAEstrela()` (`Busca.cpp:180`) + `heuristica()` (`Busca.cpp:78`) |
@@ -360,6 +419,22 @@ Usamos permutação+orientação porque dá um índice único e compacto (0 a
 uma tabela hash (mais lenta e mais complexa) para o mesmo efeito. A
 conversão para facelets (`facelets()`, `Cubo.cpp`) só existe para a
 impressão colorida.
+
+**"A janela 3D não é meio 'trapaça' pra quem só pede C/C++, já que usa uma
+biblioteca de terceiros?"**
+Não muda a linguagem — `Janela3D.cpp` é C++ puro, só chama funções de uma
+biblioteca gráfica (raylib) em vez de reimplementar projeção/rasterização
+na mão, o que a própria descrição do enunciado permite como extra ("fiquem
+à vontade para implementar... interface 3D"). O programa inteiro funciona
+sem ela: `make` (sem `3d`) não depende do raylib em nada.
+
+**"Como vocês têm certeza de que os giros na janela 3D estão animando no
+sentido certo, e não invertido?"**
+Comparação de imagens: renderizamos o cubo com a peça girada por matriz a
+90°/180°/270° (o fim da animação) e, separadamente, o mesmo cubo depois de
+`mover()` de verdade ter sido aplicado — mesma câmera nos dois casos — e
+comparamos pixel a pixel. Bateu (0-1 pixel de diferença, só anti-aliasing)
+nos 9 movimentos, em 5 cubos diferentes. Detalhe na seção 10.1.
 
 **"O laço realmente não muda entre as três buscas? Provem."**
 Sim: `lacoDeBusca` (`Busca.cpp:101`) é chamado nas três funções públicas

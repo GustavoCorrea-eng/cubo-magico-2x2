@@ -12,6 +12,9 @@
 #include "Busca.hpp"
 #include "Cubo.hpp"
 #include "Teclado.hpp"
+#ifdef COM_JANELA_3D
+#include "Janela3D.hpp"
+#endif
 
 static Cubo cubo = cuboResolvido();
 static std::vector<int> historico;
@@ -86,6 +89,9 @@ static void desenharTela()
     std::printf("             m  rodar as 3 e comparar numa tabela\n");
     std::printf("    OUTROS   e  embaralhar   c  resetar   a  aplicar solucao   q  sair\n");
     std::printf("             v  alternar vista (planificacao / canto 3D)\n");
+#ifdef COM_JANELA_3D
+    std::printf("             j  abrir janela 3D de verdade (raylib)\n");
+#endif
     std::printf("   ---------------------------------------------------\n");
     std::printf("   >> %s\n", mensagem.c_str());
 }
@@ -254,6 +260,13 @@ static bool tratarTecla(int tecla)
                        ? "Vista de canto (3 faces: U, F, R)."
                        : "Planificacao completa (6 faces).";
         return true;
+
+#ifdef COM_JANELA_3D
+    case 'j':
+        abrirJanela3D(cubo, historico, temSolucao, ultimaBusca);
+        mensagem = "De volta ao console.";
+        return true;
+#endif
 
     case 'c':
         cubo = cuboResolvido();

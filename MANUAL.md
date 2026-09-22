@@ -23,6 +23,18 @@ O programa roda direto no terminal — não abre nenhuma janela separada.
 > Use o PowerShell, o terminal do VS Code ou o Windows Terminal. O `cmd.exe`
 > antigo pode não mostrar as cores corretamente.
 
+Se você também quiser a janela 3D de verdade (tecla `j`, ver seção 2.2),
+instale o [raylib](https://www.raylib.com/) uma vez e compile com `make 3d`
+em vez do comando acima:
+
+```bash
+pacman -S mingw-w64-ucrt-x86_64-raylib   # so na primeira vez
+make 3d
+.\cubo2x2-3d.exe
+```
+
+Isso é opcional — o programa funciona inteiro sem isso, só sem a tecla `j`.
+
 ## 2. Entendendo a tela
 
 Toda vez que você faz algo, a tela é redesenhada e mostra, de cima para
@@ -88,6 +100,30 @@ um jeito mais rápido de olhar as 3 faces com que você mexe, sem precisar
 "traduzir" a planificação toda vez. As faces D, L e B ficam escondidas nessa
 vista, como ficariam escondidas se você estivesse segurando o cubo de
 verdade na mão. Aperte `v` de novo para voltar à planificação completa.
+
+### 2.2. A janela 3D de verdade (tecla `j`, opcional)
+
+Se o programa foi compilado com `make 3d` (precisa ter o raylib instalado —
+veja a seção 1), a tecla `j` abre uma **janela separada com o cubo em 3D de
+verdade**: você pode girar a câmera ao redor dele com as setas, e os giros
+das faces são animados de verdade, não só um texto mudando.
+
+Dentro da janela:
+
+| Tecla | Ação |
+|---|---|
+| `u` `r` `f` | giro horário |
+| `U` `R` `F` (shift) | giro anti-horário |
+| setas | girar a câmera ao redor do cubo |
+| `z` | desfazer |
+| `c` | resetar para o estado resolvido |
+| espaço | aplicar, com animação, a solução que você já calculou no console |
+| `ESC` | fechar a janela e voltar ao console |
+
+A janela é só para **jogar e ver** — ela não roda buscas novas. Se você
+quer que a IA resolva, feche a janela (`ESC`), rode a busca no console
+(`1`, `2`, `3` ou `m`) e depois abra a janela de novo (`j`) e aperte espaço
+para ver a solução sendo aplicada em 3D.
 
 ## 3. Jogando manualmente
 
@@ -220,3 +256,13 @@ visitando muito menos.
 **Posso repetir exatamente o mesmo embaralhamento depois?**
 Sim — anote a semente e o número de movimentos que você usou, e digite os
 mesmos valores da próxima vez que apertar `e`.
+
+**Apertei `j` e não aconteceu nada / a tecla nem aparece no menu.**
+O programa foi compilado sem raylib (`make`, sem o `3d`). Compile de novo
+com `make 3d` (depois de instalar o raylib — ver seção 1) para ter a tecla.
+
+**A janela 3D não abre e aparece um erro sobre `raylib.dll` ou `glfw3.dll`
+faltando.**
+Essas DLLs vêm com o raylib e ficam em `C:\msys64\ucrt64\bin`. Confira se
+essa pasta está no PATH do Windows (é onde o `g++` também mora, então se
+você já compila o projeto normalmente, ela já deve estar).

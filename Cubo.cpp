@@ -164,7 +164,7 @@ int movimentoInverso(int mov)
 //             12 13
 //             14 15
 // ------------------------------------------------------------
-static const uint8_t CANTO_FACELET[N_CANTOS][3] = {
+const uint8_t CANTO_FACELET[N_CANTOS][3] = {
     /* URF */ { 3,  4,  9},
     /* UFL */ { 2,  8, 17},
     /* ULB */ { 0, 16, 21},

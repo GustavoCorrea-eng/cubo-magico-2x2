@@ -71,6 +71,12 @@ int  movimentoInverso(int mov);
 // Faces: 0=U(branco) 1=R(vermelho) 2=F(verde) 3=D(amarelo)
 //        4=L(laranja) 5=B(azul)
 // ------------------------------------------------------------
+// CANTO_FACELET[i][k] = indice (0..23) da figurinha que fica no k-esimo
+// adesivo visivel da posicao de canto i (ver Cubo.cpp para o desenho da
+// planificacao). Exposta para quem precisar desenhar o cubo de outro jeito
+// (ex.: a janela 3D em Janela3D.cpp) sem duplicar esta tabela.
+extern const uint8_t CANTO_FACELET[N_CANTOS][3];
+
 std::array<uint8_t, 24> facelets(const Cubo &c);
 
 // Planificacao completa (todas as 6 faces).
