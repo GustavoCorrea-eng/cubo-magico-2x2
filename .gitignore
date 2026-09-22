@@ -1,0 +1,8 @@
+# executaveis gerados localmente - nao versionar
+*.exe
+*.o
+*.obj
+*.out
+
+# artefatos de build
+build/
