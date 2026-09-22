@@ -84,20 +84,22 @@ static void desenharTela()
         }
     }
 
-    std::printf("   ---------------------------------------------------\n");
-    std::printf("    JOGAR    u r f   giro horario         z   desfazer\n");
-    std::printf("             U R F   giro anti-horario\n");
-    std::printf("    IA       1  Busca em Largura\n");
-    std::printf("             2  Profundidade Limitada Iterativa\n");
-    std::printf("             3  A*\n");
-    std::printf("             m  rodar as 3 e comparar numa tabela\n");
-    std::printf("    OUTROS   e  embaralhar   c  cubo volta ao resolvido\n");
-    std::printf("             C  reiniciar o programa (tudo)   a  aplicar solucao   q  sair\n");
-    std::printf("             v  alternar vista (planificacao / canto 3D)\n");
+    std::printf("   ---------------------------------------------------------------\n");
+    std::printf("    %-12s %-9s %s\n", "JOGAR",      "u r f",   "giro horario");
+    std::printf("    %-12s %-9s %s\n", "",           "U R F",   "giro anti-horario (shift)");
+    std::printf("    %-12s %-9s %s\n", "",           "z",       "desfazer");
+    std::printf("    %-12s %-9s %s\n", "VISUALIZAR", "v",       "alternar planificacao / vista de canto");
 #ifdef COM_JANELA_3D
-    std::printf("             j  abrir janela 3D de verdade (raylib)\n");
+    std::printf("    %-12s %-9s %s\n", "",           "j",       "abrir janela 3D de verdade (raylib)");
 #endif
-    std::printf("   ---------------------------------------------------\n");
+    std::printf("    %-12s %-9s %s\n", "EMBARALHAR", "e",       "nova semente / quantidade de movimentos");
+    std::printf("    %-12s %-9s %s\n", "",           "c",       "cubo volta ao resolvido");
+    std::printf("    %-12s %-9s %s\n", "IA",         "1 2 3",   "resolver com Largura / Prof. Iterativa / A*");
+    std::printf("    %-12s %-9s %s\n", "",           "m",       "rodar as 3 de uma vez e comparar numa tabela");
+    std::printf("    %-12s %-9s %s\n", "",           "a",       "aplicar a solucao encontrada");
+    std::printf("    %-12s %-9s %s\n", "PROGRAMA",   "C",       "reiniciar tudo (shift+c)");
+    std::printf("    %-12s %-9s %s\n", "",           "q",       "sair");
+    std::printf("   ---------------------------------------------------------------\n");
     std::printf("   >> %s\n", mensagem.c_str());
 }
 
