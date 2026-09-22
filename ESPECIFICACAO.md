@@ -314,6 +314,25 @@ com Enter, diferente do resto da interface que lê uma tecla só) — isso é
 seguro porque `lerTecla` (via `_getch`/modo bruto) não interfere no *buffer*
 do `std::cin`.
 
+`teclasDoMovimento(mov)` (`main.cpp:35`) traduz um código de movimento para
+as teclas que o jogador apertaria na mão (minúscula = horário, maiúscula =
+anti-horário, letra repetida = 180°) — usada tanto na mensagem de `jogar()`
+quanto na lista de passos da solução (`nomesDosPassos`, `main.cpp:47`), para
+que a solução mostrada seja diretamente "digitável", sem tradução de notação.
+
+`compararTodas()` (`main.cpp:159`, tecla `m`) roda as três estratégias no
+mesmo cubo em sequência e imprime uma tabela (estados visitados, gerados,
+tamanho da solução e tempo, lado a lado) — útil para mostrar na arguição, ao
+vivo, que o A\* visita muito menos estados que as outras duas para a mesma
+solução ótima.
+
+`imprimirCuboIso()` (`Cubo.cpp`, ver seção 2) é chamada por `desenharTela()`
+em vez de `imprimirCubo()` quando `modoIsometrico` está ligado (tecla `v`) —
+mostra só as 3 faces jogáveis (U, F, R) com um leve deslocamento por linha
+para sugerir profundidade. Não é uma projeção 3D real (sem matriz de
+rotação nem perspectiva), só uma segunda forma de olhar o cubo mais rápida
+que a planificação completa.
+
 ## 11. Checklist do enunciado → onde está no código
 
 | Requisito | Onde |
@@ -321,15 +340,15 @@ do `std::cin`.
 | Estado | `struct Cubo` (`Cubo.hpp:39`) |
 | Função sucessora | `mover()` (`Cubo.cpp:59`) |
 | Função avaliadora | `ehObjetivo()` (`Busca.cpp:62`) |
-| Interface de visualização/manipulação | `imprimirCubo()` (`Cubo.cpp:211`) + `main.cpp` inteiro |
+| Interface de visualização/manipulação | `imprimirCubo()` e `imprimirCuboIso()` (`Cubo.cpp`) + `main.cpp` inteiro |
 | Busca em Largura | `buscaEmLargura()` (`Busca.cpp:167`) |
 | Profundidade Limitada Iterativa | `buscaProfundidadeIterativa()` (`Busca.cpp:196`) |
 | A\* com heurística | `buscaAEstrela()` (`Busca.cpp:180`) + `heuristica()` (`Busca.cpp:78`) |
 | Laço único, independente da estrutura | `lacoDeBusca()` (`Busca.cpp:101`) |
-| Jogar ou escolher IA | `tratarTecla()` (`main.cpp:154`) |
-| Contagem de estados visitados | `Resultado::visitados`, exibido em `desenharTela()` |
-| Passos da solução de forma intuitiva | `nomesDosPassos()` (`main.cpp:27`) + `aplicarSolucao()` (`main.cpp:134`) |
-| Cubo inicial refeito por semente | `embaralhar()` (`Cubo.cpp:103`) + `embaralharAgora()` (`main.cpp:89`) |
+| Jogar ou escolher IA | `tratarTecla()` (`main.cpp:237`) |
+| Contagem de estados visitados | `Resultado::visitados`, exibido em `desenharTela()` e em `compararTodas()` (`main.cpp:159`) |
+| Passos da solução de forma intuitiva | `teclasDoMovimento()`/`nomesDosPassos()` (`main.cpp:35,47`) + `aplicarSolucao()` (`main.cpp:217`) |
+| Cubo inicial refeito por semente | `embaralhar()` (`Cubo.cpp:103`) + `embaralharAgora()` (`main.cpp:112`) |
 
 ## 12. Perguntas prováveis na arguição
 

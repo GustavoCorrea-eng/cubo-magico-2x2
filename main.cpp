@@ -21,6 +21,7 @@ static std::string mensagem = "Aperte 'e' para embaralhar, ou jogue com u r f.";
 
 static bool temSolucao = false;
 static Resultado ultimaBusca;
+static bool modoIsometrico = false;   // false = planificacao (6 faces), true = vista de canto (3 faces)
 
 static void limparTela() { std::printf("\x1b[2J\x1b[H"); }
 
@@ -57,7 +58,8 @@ static void desenharTela()
 {
     limparTela();
     std::printf("  =============== CUBO MAGICO 2x2x2 ===============\n");
-    imprimirCubo(cubo);
+    if (modoIsometrico) imprimirCuboIso(cubo);
+    else                imprimirCubo(cubo);
 
     std::printf("   Movimentos feitos ... %zu\n", historico.size());
     std::printf("   Semente .............. %u  (%d movimentos ao embaralhar)\n",
@@ -83,6 +85,7 @@ static void desenharTela()
     std::printf("             3  A*\n");
     std::printf("             m  rodar as 3 e comparar numa tabela\n");
     std::printf("    OUTROS   e  embaralhar   c  resetar   a  aplicar solucao   q  sair\n");
+    std::printf("             v  alternar vista (planificacao / canto 3D)\n");
     std::printf("   ---------------------------------------------------\n");
     std::printf("   >> %s\n", mensagem.c_str());
 }
@@ -244,6 +247,13 @@ static bool tratarTecla(int tecla)
     case 'z': desfazer(); return true;
 
     case 'e': embaralharAgora(); return true;
+
+    case 'v':
+        modoIsometrico = !modoIsometrico;
+        mensagem = modoIsometrico
+                       ? "Vista de canto (3 faces: U, F, R)."
+                       : "Planificacao completa (6 faces).";
+        return true;
 
     case 'c':
         cubo = cuboResolvido();

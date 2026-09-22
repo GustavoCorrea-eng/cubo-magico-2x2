@@ -72,5 +72,12 @@ int  movimentoInverso(int mov);
 //        4=L(laranja) 5=B(azul)
 // ------------------------------------------------------------
 std::array<uint8_t, 24> facelets(const Cubo &c);
+
+// Planificacao completa (todas as 6 faces).
 void imprimirCubo(const Cubo &c);
+
+// Vista de "canto" - so as 3 faces jogaveis (U, F, R), desenhadas
+// com um leve efeito de profundidade. Ver comentario em Cubo.cpp.
+void imprimirCuboIso(const Cubo &c);
+
 void habilitarCoresNoTerminal();     // liga ANSI no console do Windows

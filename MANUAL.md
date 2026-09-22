@@ -68,6 +68,27 @@ baixo:
 5. **Uma mensagem** na última linha, dizendo o que aconteceu na sua última
    ação (ex.: "Movimento R aplicado.").
 
+### 2.1. A outra vista: "de canto" (tecla `v`)
+
+Apertando `v`, a tela troca a planificação (as 6 faces esticadas num plano)
+por uma **vista de canto**: só as 3 faces que você giraria manualmente — U
+(topo), F (frente) e R (direita) — desenhadas juntas, com a face U um pouco
+deslocada para a direita a cada linha, pra dar uma ligeira sensação de
+profundidade:
+
+```
+         U  U      (U em cima)
+       U  U
+ F  F    R  R
+ F  F    R  R    (F na frente, R na direita)
+```
+
+Não é uma câmera 3D de verdade (não gira, não tem perspectiva real) — é só
+um jeito mais rápido de olhar as 3 faces com que você mexe, sem precisar
+"traduzir" a planificação toda vez. As faces D, L e B ficam escondidas nessa
+vista, como ficariam escondidas se você estivesse segurando o cubo de
+verdade na mão. Aperte `v` de novo para voltar à planificação completa.
+
 ## 3. Jogando manualmente
 
 Basta apertar uma tecla — **não precisa apertar Enter**. O programa reage na
@@ -82,6 +103,7 @@ hora.
 | `R` (shift+r) | gira a face da direita no sentido **anti-horário** |
 | `F` (shift+f) | gira a face da frente no sentido **anti-horário** |
 | `z` | desfaz o último movimento que você fez |
+| `v` | alterna entre a planificação (6 faces) e a vista de canto (3 faces) |
 
 Repare que só existem três faces controláveis (U, R, F). Isso é de propósito
 e não limita o que dá para fazer: como o cubo 2x2x2 não tem peças de centro,
@@ -114,6 +136,8 @@ Depois de embaralhar (ou a qualquer momento), aperte:
 - `1` — resolve com **Busca em Largura**
 - `2` — resolve com **Busca em Profundidade Limitada Iterativa**
 - `3` — resolve com **A\***
+- `m` — roda **as três de uma vez** no mesmo cubo e mostra uma tabela
+  comparando quantos estados cada uma visitou e quanto tempo levou
 
 O programa mostra "Rodando ..." e calcula a solução. Cubos pouco
 embaralhados resolvem na hora; cubos com muitos movimentos de embaralhamento
@@ -127,11 +151,19 @@ Quando termina, a tela mostra:
   uma configuração do cubo — visitar um estado é a IA examinar aquela
   configuração para ver se já é a solução);
 - **Quanto tempo** levou;
-- **A lista de movimentos** da solução, por exemplo: `R U2 F' R2 U`.
+- **A lista de movimentos** da solução, já como as teclas que você apertaria
+  para refazê-la na mão — por exemplo: `r  u u  F  r r  u` (gire `r`, depois
+  `u` duas vezes, depois `F`, depois `r` duas vezes, depois `u`).
 
 Aperte `a` para **aplicar a solução no cubo**, um movimento por vez — a cada
 tecla que você aperta, o próximo movimento da solução é feito e a tela
-atualiza, até o cubo ficar resolvido.
+atualiza, até o cubo ficar resolvido. Durante esse passo a passo, o programa
+também mostra a notação clássica de cubo mágico entre parênteses (`U`, `U2`,
+`U'`...), caso você queira procurar essa mesma solução em algum lugar que
+use essa notação.
+
+Depois de rodar `m`, a solução do A\* fica pronta para aplicar com `a`, do
+mesmo jeito.
 
 ## 6. O que cada estratégia de IA está fazendo (de forma simples)
 

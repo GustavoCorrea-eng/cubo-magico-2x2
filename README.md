@@ -39,7 +39,9 @@ Todas valem sem apertar Enter (uma tecla, uma ação):
 | `z` | desfazer o último movimento |
 | `e` | embaralhar (pede semente e número de movimentos) |
 | `c` | voltar ao estado resolvido |
+| `v` | alternar entre a planificação (6 faces) e a vista de canto (3 faces, pseudo-3D) |
 | `1` `2` `3` | resolver com Largura / Profundidade Iterativa / A\* |
+| `m` | rodar as três buscas de uma vez e comparar numa tabela |
 | `a` | aplicar a solução encontrada, passo a passo |
 | `q` | sair |
 
@@ -51,7 +53,7 @@ estratégias no mesmo caso (requisito 6 do enunciado).
 
 | Arquivo | Conteúdo |
 |---|---|
-| `Cubo.hpp` / `Cubo.cpp` | **Estado** (`struct Cubo`) e **função sucessora** (`mover`); índice único do estado (`indiceDoEstado`); embaralhamento reprodutível por semente (`embaralhar`); conversão do estado para as 24 "figurinhas" e impressão colorida (`imprimirCubo`) |
+| `Cubo.hpp` / `Cubo.cpp` | **Estado** (`struct Cubo`) e **função sucessora** (`mover`); índice único do estado (`indiceDoEstado`); embaralhamento reprodutível por semente (`embaralhar`); conversão do estado para as 24 "figurinhas"; impressão colorida em planificação (`imprimirCubo`) e em vista de canto/pseudo-3D (`imprimirCuboIso`) |
 | `Fronteira.hpp` | As três estruturas de dados atrás de uma interface comum (classe abstrata `Fronteira`, com `FilaFronteira`, `PilhaFronteira` e `PrioridadeFronteira`) |
 | `Busca.hpp` / `Busca.cpp` | **Função avaliadora** (`ehObjetivo`), **heurística** do A\* (`heuristica`), e **o laço de busca único** (`lacoDeBusca`, estático em `Busca.cpp`), chamado pelas três funções públicas `buscaEmLargura`, `buscaProfundidadeIterativa`, `buscaAEstrela` |
 | `Teclado.hpp` / `Teclado.cpp` | Leitura de uma única tecla, sem precisar de Enter |
@@ -196,22 +198,43 @@ heurística simples (`h` vai só de 0 a 2). A Profundidade Iterativa costuma
 visitar mais que a Largura porque cada rodada refaz o trabalho das rodadas
 anteriores (o total é a soma dos visitados em todos os limites).
 
+## Vista de canto (pseudo-3D)
+
+Além da planificação (as 6 faces esticadas num plano), a tecla `v` alterna
+para uma segunda visualização: só as 3 faces jogáveis (U, F, R) desenhadas
+juntas, com a face U levemente deslocada para a direita a cada linha, para
+sugerir profundidade:
+
+```
+         U  U      (U em cima)
+       U  U
+ F  F    R  R
+ F  F    R  R    (F na frente, R na direita)
+```
+
+Não é uma câmera 3D de verdade — não há matriz de rotação nem projeção em
+perspectiva, só indentação progressiva (`imprimirCuboIso` em `Cubo.cpp`).
+É uma forma barata de olhar de uma vez só para as 3 faces que se manipula,
+sem precisar "traduzir" a planificação toda vez.
+
 ## Requisitos do enunciado — conferência
 
-1. **Interface** — texto colorido no terminal, mostra o cubo planificado e
-   os comandos disponíveis; qualquer tecla move ou aciona uma IA.
+1. **Interface** — texto colorido no terminal, mostra o cubo planificado (ou,
+   alternativamente, em vista de canto) e os comandos disponíveis; qualquer
+   tecla move ou aciona uma IA.
 2. **Laço genérico** — `lacoDeBusca` não muda entre as três estratégias.
 3. **Jogar ou IA** — a mesma tela deixa jogar (`u r f`/`U R F`) ou chamar
-   qualquer uma das três IAs (`1`/`2`/`3`).
+   qualquer uma das três IAs (`1`/`2`/`3`, ou `m` para rodar as três e comparar).
 4. **Estados visitados** — mostrado após cada busca (`ultimaBusca.visitados`).
-5. **Passos da solução** — impressos como lista de nomes de movimento
-   (`R U2 F' ...`) e também aplicáveis um a um com a tecla `a`.
+5. **Passos da solução** — impressos como a sequência de teclas para
+   reproduzi-los na mão, e também aplicáveis um a um com a tecla `a`.
 6. **Reprodutibilidade** — semente + número de movimentos regeneram sempre o
    mesmo cubo (`e`).
 
 ## Limitações conhecidas
 
-- Só há visualização em texto (planificação colorida); não há renderização 3D.
+- A vista de canto (`v`) é uma aproximação por indentação, não uma projeção
+  3D real; a planificação continua sendo a única visualização com as 6 faces.
 - Enquanto a Busca em Largura roda em cubos muito embaralhados (17+
   movimentos), o programa fica alguns segundos sem responder — é esperado,
   porque a busca é síncrona (sem threads).

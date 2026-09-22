@@ -239,6 +239,43 @@ void imprimirCubo(const Cubo &c)
     std::printf("   (L)      (F)      (R)      (B)   -  U em cima, D embaixo\n\n");
 }
 
+// ------------------------------------------------------------
+// VISUALIZACAO EM "CANTO" (pseudo-3D)
+//
+// Mostra so as 3 faces que dariam pra ver olhando para o
+// cubo de frente e de cima: U (topo), F (frente) e R (direita).
+// As faces D, L e B ficam escondidas atras, como aconteceria
+// numa vista 3D de verdade.
+//
+// Nao ha nenhuma camera nem matriz de rotacao aqui - o efeito de
+// profundidade e so a face U sendo desenhada progressivamente
+// mais a direita a cada linha, "recuando" para tras. E uma
+// aproximacao barata de 3D, nao uma projecao real.
+// ------------------------------------------------------------
+void imprimirCuboIso(const Cubo &c)
+{
+    auto f = facelets(c);
+
+    std::printf("\n        ");
+    imprimirAdesivo(f[0]); imprimirAdesivo(f[1]);
+    std::printf("     (U em cima)\n");
+
+    std::printf("      ");
+    imprimirAdesivo(f[2]); imprimirAdesivo(f[3]);
+    std::printf("\n");
+
+    imprimirAdesivo(f[8]); imprimirAdesivo(f[9]);
+    std::printf("  ");
+    imprimirAdesivo(f[4]); imprimirAdesivo(f[5]);
+    std::printf("\n");
+
+    imprimirAdesivo(f[10]); imprimirAdesivo(f[11]);
+    std::printf("  ");
+    imprimirAdesivo(f[6]); imprimirAdesivo(f[7]);
+    std::printf("   (F na frente, R na direita)\n\n");
+    std::printf("   (as faces D, L e B ficam escondidas atras, como num cubo de verdade)\n\n");
+}
+
 void habilitarCoresNoTerminal()
 {
 #ifdef _WIN32
