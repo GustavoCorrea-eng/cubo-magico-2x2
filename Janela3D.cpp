@@ -128,6 +128,26 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         animacaoEhDesfazer = ehDesfazer;
     };
 
+    // Aplica de vez o movimento que esta animando (cubo + historico) e
+    // passa para o proximo da fila, se houver. E o mesmo "commit" que
+    // roda a cada frame quando a animacao termina (mais abaixo) - extraido
+    // em funcao para poder ser chamado de novo, sem esperar a animacao,
+    // se a janela fechar no meio de um giro (ver depois do laco principal).
+    auto concluirMovimentoAtual = [&]() {
+        cubo = mover(cubo, movAnimando);
+        if (!animacaoEhDesfazer) historico.push_back(movAnimando);
+        movAnimando = -1;
+        tempoGiro = 0.0f;
+        filaPos++;
+        if (filaPos < fila.size()) {
+            movAnimando = fila[filaPos];
+            tempoGiro = 0.0f;
+        } else if (tocandoSolucao) {
+            tocandoSolucao = false;
+            temSolucao = false;   // solucao inteira acabou de ser aplicada
+        }
+    };
+
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
@@ -174,20 +194,7 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         // --- avanca a animacao do giro atual ---
         if (movAnimando >= 0) {
             tempoGiro += dt;
-            if (tempoGiro >= DURACAO) {
-                cubo = mover(cubo, movAnimando);
-                if (!animacaoEhDesfazer) historico.push_back(movAnimando);
-                movAnimando = -1;
-                tempoGiro = 0.0f;
-                filaPos++;
-                if (filaPos < fila.size()) {
-                    movAnimando = fila[filaPos];
-                    tempoGiro = 0.0f;
-                } else if (tocandoSolucao) {
-                    tocandoSolucao = false;
-                    temSolucao = false;   // solucao inteira acabou de ser aplicada
-                }
-            }
+            if (tempoGiro >= DURACAO) concluirMovimentoAtual();
         }
 
         // --- desenha ---
@@ -230,6 +237,16 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         DrawFPS(LARGURA - 90, 12);
         EndDrawing();
     }
+
+    // A janela pode fechar (ESC, ou o X) no meio de uma animacao - por
+    // exemplo, logo depois de 'z' (desfazer) ou de espaco (aplicar a
+    // solucao), antes dos ~0.16s do giro terminarem. Sem isto, o cubo
+    // devolvido ao console ficaria "pela metade": o historico ja teria
+    // sido atualizado (em 'z') ou a solucao ja teria sido marcada como
+    // aplicada, mas o cubo em si nao teria o(s) ultimo(s) giro(s). Termina
+    // de aplicar tudo o que ainda estiver pendente, na hora, sem esperar
+    // a animacao, para o console sempre receber um estado consistente.
+    while (movAnimando >= 0) concluirMovimentoAtual();
 
     CloseWindow();
 }
