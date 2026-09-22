@@ -139,6 +139,8 @@ hora.
 | `R` (shift+r) | gira a face da direita no sentido **anti-horário** |
 | `F` (shift+f) | gira a face da frente no sentido **anti-horário** |
 | `z` | desfaz o último movimento que você fez |
+| `c` | volta o cubo ao estado resolvido (mantém semente e histórico de tentativa) |
+| `C` (shift+c) | **reinicia o programa inteiro** — cubo, histórico, última busca e semente voltam ao padrão, como se tivesse acabado de abrir |
 | `v` | alterna entre a planificação (6 faces) e a vista de canto (3 faces) |
 
 Repare que só existem três faces controláveis (U, R, F). Isso é de propósito
@@ -163,7 +165,9 @@ visitou contra quantos o A* visitou, no *mesmo* cubo embaralhado — uma
 comparação justa.
 
 A tecla `c` volta o cubo direto ao estado resolvido, sem desfazer movimento
-por movimento.
+por movimento. Já `C` (shift+c) vai além: reinicia o programa inteiro — a
+semente e o número de movimentos do embaralhamento também voltam ao padrão
+(2024, 9 movimentos), como se você tivesse acabado de abrir o programa.
 
 ## 5. Pedindo para a IA resolver
 

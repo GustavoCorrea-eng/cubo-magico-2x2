@@ -16,11 +16,15 @@
 #include "Janela3D.hpp"
 #endif
 
+static const unsigned int SEMENTE_PADRAO       = 2024;
+static const int          TAMANHO_PADRAO       = 9;
+static const char        *MENSAGEM_INICIAL     = "Aperte 'e' para embaralhar, ou jogue com u r f.";
+
 static Cubo cubo = cuboResolvido();
 static std::vector<int> historico;
-static unsigned int semente = 2024;
-static int tamanhoEmbaralho = 9;
-static std::string mensagem = "Aperte 'e' para embaralhar, ou jogue com u r f.";
+static unsigned int semente = SEMENTE_PADRAO;
+static int tamanhoEmbaralho = TAMANHO_PADRAO;
+static std::string mensagem = MENSAGEM_INICIAL;
 
 static bool temSolucao = false;
 static Resultado ultimaBusca;
@@ -87,7 +91,8 @@ static void desenharTela()
     std::printf("             2  Profundidade Limitada Iterativa\n");
     std::printf("             3  A*\n");
     std::printf("             m  rodar as 3 e comparar numa tabela\n");
-    std::printf("    OUTROS   e  embaralhar   c  resetar   a  aplicar solucao   q  sair\n");
+    std::printf("    OUTROS   e  embaralhar   c  cubo volta ao resolvido\n");
+    std::printf("             C  reiniciar o programa (tudo)   a  aplicar solucao   q  sair\n");
     std::printf("             v  alternar vista (planificacao / canto 3D)\n");
 #ifdef COM_JANELA_3D
     std::printf("             j  abrir janela 3D de verdade (raylib)\n");
@@ -113,6 +118,21 @@ static void desfazer()
     cubo = mover(cubo, movimentoInverso(ultimo));
     temSolucao = false;
     mensagem = "Ultimo movimento desfeito.";
+}
+
+// Reset completo: volta tudo ao estado de quando o programa acabou de abrir
+// (cubo resolvido, sem historico, sem busca guardada, semente/tamanho de
+// embaralhamento padrao). Diferente da tecla 'c', que so resolve o cubo.
+static void resetarPrograma()
+{
+    cubo = cuboResolvido();
+    historico.clear();
+    temSolucao = false;
+    ultimaBusca = Resultado();
+    semente = SEMENTE_PADRAO;
+    tamanhoEmbaralho = TAMANHO_PADRAO;
+    modoIsometrico = false;
+    mensagem = "Programa reiniciado.";
 }
 
 static void embaralharAgora()
@@ -274,6 +294,8 @@ static bool tratarTecla(int tecla)
         temSolucao = false;
         mensagem = "Cubo voltou ao estado resolvido.";
         return true;
+
+    case 'C': resetarPrograma(); return true;
 
     case '1': resolver(0); return true;
     case '2': resolver(1); return true;

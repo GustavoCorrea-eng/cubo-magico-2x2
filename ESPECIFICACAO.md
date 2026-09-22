@@ -323,6 +323,12 @@ com Enter, diferente do resto da interface que lê uma tecla só) — isso é
 seguro porque `lerTecla` (via `_getch`/modo bruto) não interfere no *buffer*
 do `std::cin`.
 
+`resetarPrograma()` (`main.cpp`, tecla `C`) é diferente do `case 'c'`: `c`
+só resolve o cubo (mantém semente e histórico como estão); `C` zera tudo —
+cubo, histórico, `ultimaBusca`, e devolve `semente`/`tamanhoEmbaralho` às
+constantes `SEMENTE_PADRAO`/`TAMANHO_PADRAO` (2024/9) — o estado fica
+idêntico ao de quando o `main()` inicializou essas variáveis globais.
+
 `teclasDoMovimento(mov)` (`main.cpp:35`) traduz um código de movimento para
 as teclas que o jogador apertaria na mão (minúscula = horário, maiúscula =
 anti-horário, letra repetida = 180°) — usada tanto na mensagem de `jogar()`

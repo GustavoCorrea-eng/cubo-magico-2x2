@@ -60,7 +60,8 @@ Todas valem sem apertar Enter (uma tecla, uma ação):
 | `U` `R` `F` | giro anti-horário (shift + letra) |
 | `z` | desfazer o último movimento |
 | `e` | embaralhar (pede semente e número de movimentos) |
-| `c` | voltar ao estado resolvido |
+| `c` | voltar ao estado resolvido (mantém semente/histórico) |
+| `C` (shift+c) | reiniciar o programa inteiro (cubo, histórico, busca, semente) |
 | `v` | alternar entre a planificação (6 faces) e a vista de canto (3 faces, pseudo-3D) |
 | `j` | abrir a janela 3D de verdade (só existe se compilado com `make 3d`) |
 | `1` `2` `3` | resolver com Largura / Profundidade Iterativa / A\* |
