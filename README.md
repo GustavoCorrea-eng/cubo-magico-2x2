@@ -50,6 +50,9 @@ de execução (ficam em `ucrt64/bin` do MSYS2) — não é um binário standalon
 Sem o raylib instalado, `make` (sem `3d`) continua funcionando normalmente,
 só sem a tecla `j`.
 
+Passo a passo completo (do zero, com solução de problemas) em
+`INSTALACAO_3D.md`.
+
 ### Teclas
 
 Todas valem sem apertar Enter (uma tecla, uma ação):

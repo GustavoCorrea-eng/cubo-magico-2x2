@@ -33,6 +33,10 @@ make 3d
 .\cubo2x2-3d.exe
 ```
 
+Nunca instalou o MSYS2/raylib antes, ou deu algum erro nesse caminho? O
+`INSTALACAO_3D.md` tem o passo a passo completo, do zero, com solução dos
+problemas mais comuns.
+
 Isso é opcional — o programa funciona inteiro sem isso, só sem a tecla `j`.
 
 ## 2. Entendendo a tela
