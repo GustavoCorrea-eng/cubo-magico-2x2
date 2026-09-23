@@ -388,6 +388,17 @@ mesma câmera. Resultado: 0-1 pixel de diferença (ruído de anti-aliasing) em
 todos os 9 movimentos, testados em 5 cubos embaralhados diferentes (45
 comparações, disponíveis para refazer se a banca pedir).
 
+**Invalidação da solução guardada.** `comecarMovimento` (a função interna
+que inicia a animação de qualquer giro novo — `u`/`r`/`f` ou o `z` de
+desfazer) zera `temSolucao` assim que o movimento começa, espelhando o que
+`jogar()`/`desfazer()` já fazem no console (`main.cpp`). Sem isso, mexer no
+cubo dentro da janela depois de já ter calculado uma solução (no console)
+deixava a tecla espaço aplicar essa solução antiga — calculada para um cubo
+que não existe mais — sobre o cubo atual, silenciosamente errado. A tecla
+espaço (tocar a solução) nunca passa por `comecarMovimento` — ela mexe em
+`fila`/`movAnimando` direto — então esse ponto único não interfere na
+reprodução da própria solução.
+
 **Por que não é 100% standalone.** O pacote `mingw-w64-ucrt-x86_64-raylib`
 do MSYS2 traz `libraylib.a` (estático) mas ele foi compilado esperando
 `glfw` como DLL (símbolos `__imp_glfwXXX`, que só existem ao linkar contra

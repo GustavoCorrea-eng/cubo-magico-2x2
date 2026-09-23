@@ -118,6 +118,13 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
     bool animacaoEhDesfazer = false;
     bool tocandoSolucao = false;   // true enquanto a fila e a solucao inteira (tecla espaco)
 
+    // So e chamada para um movimento NOVO iniciado pelo jogador (u/r/f ou o
+    // 'z' de desfazer) - a tecla espaco (tocar a solucao) nunca passa por
+    // aqui, ela mexe em fila/movAnimando diretamente. Por isso da pra
+    // invalidar a solucao guardada bem aqui, num lugar so: qualquer
+    // movimento que NAO seja "aplicar a solucao em si" torna essa solucao
+    // obsoleta (ela foi calculada para o cubo de ANTES desse movimento) -
+    // o mesmo cuidado que jogar()/desfazer() ja tem no console (main.cpp).
     auto comecarMovimento = [&](int mov, bool ehDesfazer) {
         if (movAnimando >= 0) return;      // ja esta girando algo
         fila.clear();
@@ -126,6 +133,7 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         movAnimando = mov;
         tempoGiro = 0.0f;
         animacaoEhDesfazer = ehDesfazer;
+        temSolucao = false;
     };
 
     // Aplica de vez o movimento que esta animando (cubo + historico) e

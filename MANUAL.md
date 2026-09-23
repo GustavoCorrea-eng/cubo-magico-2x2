@@ -129,6 +129,13 @@ quer que a IA resolva, feche a janela (`ESC`), rode a busca no console
 (`1`, `2`, `3` ou `m`) e depois abra a janela de novo (`j`) e aperte espaço
 para ver a solução sendo aplicada em 3D.
 
+> **Atenção:** se você mexer no cubo dentro da janela (qualquer giro
+> manual, ou `z`) depois de já ter calculado uma solução, ela é descartada
+> na hora — a mensagem "Solução pronta" some da tela, e o espaço não faz
+> mais nada. Isso é de propósito: a solução foi calculada pra um cubo que
+> não existe mais assim que você mexe nele, então aplicá-la aos trancos
+> daria um resultado errado. Rode a busca de novo (no console) se precisar.
+
 ## 3. Jogando manualmente
 
 Basta apertar uma tecla — **não precisa apertar Enter**. O programa reage na
