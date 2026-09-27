@@ -6,7 +6,7 @@
 int lerTecla()
 {
     int c = _getch();
-    if (c == 0 || c == 224) _getch();   // descarta o 2o byte de teclas especiais
+    if (c == 0 || c == 224) _getch();
     return c;
 }
 

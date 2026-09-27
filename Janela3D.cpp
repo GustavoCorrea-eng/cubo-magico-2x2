@@ -7,24 +7,15 @@
 #define PI 3.14159265358979323846f
 #endif
 
-// ------------------------------------------------------------
-// Geometria: onde fica cada um dos 8 cantos no espaco, e para
-// onde apontam os seus 3 adesivos visiveis. As mesmas duas
-// tabelas descrevem tanto a posicao quanto quais adesivos
-// pertencem a cada canto - "DIR" segue a MESMA ordem de
-// CANTO_FACELET (em Cubo.cpp), entao dá pra buscar a cor direto.
-//
-//   x+ = direita (R)   y+ = cima (U)   z+ = frente (F)
-// ------------------------------------------------------------
 static const float POS[8][3] = {
-    { 1,  1,  1},   // 0 URF
-    {-1,  1,  1},   // 1 UFL
-    {-1,  1, -1},   // 2 ULB
-    { 1,  1, -1},   // 3 UBR
-    { 1, -1,  1},   // 4 DFR
-    {-1, -1,  1},   // 5 DLF
-    { 1, -1, -1},   // 6 DRB
-    {-1, -1, -1}    // 7 DBL
+    { 1,  1,  1},
+    {-1,  1,  1},
+    {-1,  1, -1},
+    { 1,  1, -1},
+    { 1, -1,  1},
+    {-1, -1,  1},
+    { 1, -1, -1},
+    {-1, -1, -1}
 };
 
 static const float DIR[8][3][3] = {
@@ -39,31 +30,26 @@ static const float DIR[8][3][3] = {
 };
 
 static const Color CORES[6] = {
-    Color{245, 245, 245, 255},   // U branco
-    Color{205,  50,  50, 255},   // R vermelho
-    Color{ 45, 170,  85, 255},   // F verde
-    Color{245, 215,  65, 255},   // D amarelo
-    Color{235, 130,  40, 255},   // L laranja
-    Color{ 50,  95, 205, 255}    // B azul
+    Color{245, 245, 245, 255},
+    Color{205,  50,  50, 255},
+    Color{ 45, 170,  85, 255},
+    Color{245, 215,  65, 255},
+    Color{235, 130,  40, 255},
+    Color{ 50,  95, 205, 255}
 };
 static const Color PLASTICO = Color{25, 25, 30, 255};
 static const Color FUNDO    = Color{24, 26, 34, 255};
 
-static const float ARESTA = 0.94f;    // tamanho de cada pecinha (deixa uma folga = "grade" preta)
-static const float ADESIVO_MARGEM = 0.14f; // quanto o adesivo e menor que a face da pecinha
+static const float ARESTA = 0.94f;
+static const float ADESIVO_MARGEM = 0.14f;
 
-// Pecas que giram em cada face: U mexe nas de cima, R nas da
-// direita, F nas da frente (mesma regra usada no resto do projeto).
 static bool pecaGira(int canto, int face)
 {
-    if (face == 0) return POS[canto][1] > 0;   // U
-    if (face == 1) return POS[canto][0] > 0;   // R
-    return POS[canto][2] > 0;                  // F
+    if (face == 0) return POS[canto][1] > 0;
+    if (face == 1) return POS[canto][0] > 0;
+    return POS[canto][2] > 0;
 }
 
-// Desenha um dos 8 cantos: o corpo preto e os 3 adesivos coloridos.
-// Se "gira" for verdadeiro, o canto ja deve estar desenhado dentro
-// de um rlPushMatrix/rlRotatef (feito por quem chama).
 static void desenharCanto(int i, const std::array<uint8_t, 24> &adesivos)
 {
     Vector3 centro = {POS[i][0] * 0.5f, POS[i][1] * 0.5f, POS[i][2] * 0.5f};
@@ -83,8 +69,6 @@ static void desenharCanto(int i, const std::array<uint8_t, 24> &adesivos)
     }
 }
 
-// Angulo (em graus) que a camada animada ja girou, dado o progresso
-// de 0 a 1 e a variacao do movimento (0=90 horario, 1=180, 2=90 anti).
 static float anguloGraus(int variacao, float progresso)
 {
     float alvo = (variacao == 0) ? -90.0f : (variacao == 1) ? -180.0f : 90.0f;
@@ -106,27 +90,17 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
     camera.fovy       = 32.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    // fila de movimentos a animar (usada tambem para tocar a solucao)
     std::vector<int> fila;
     size_t filaPos = 0;
     int movAnimando = -1;
     float tempoGiro = 0.0f;
-    const float DURACAO = 0.16f;   // segundos por movimento
+    const float DURACAO = 0.16f;
 
-    // um "desfazer" anima um movimento tambem, mas NAO deve voltar a
-    // entrar no historico (ja foi removido de la antes de comecar a girar)
     bool animacaoEhDesfazer = false;
-    bool tocandoSolucao = false;   // true enquanto a fila e a solucao inteira (tecla espaco)
+    bool tocandoSolucao = false;
 
-    // So e chamada para um movimento NOVO iniciado pelo jogador (u/r/f ou o
-    // 'z' de desfazer) - a tecla espaco (tocar a solucao) nunca passa por
-    // aqui, ela mexe em fila/movAnimando diretamente. Por isso da pra
-    // invalidar a solucao guardada bem aqui, num lugar so: qualquer
-    // movimento que NAO seja "aplicar a solucao em si" torna essa solucao
-    // obsoleta (ela foi calculada para o cubo de ANTES desse movimento) -
-    // o mesmo cuidado que jogar()/desfazer() ja tem no console (main.cpp).
     auto comecarMovimento = [&](int mov, bool ehDesfazer) {
-        if (movAnimando >= 0) return;      // ja esta girando algo
+        if (movAnimando >= 0) return;
         fila.clear();
         fila.push_back(mov);
         filaPos = 0;
@@ -136,11 +110,6 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         temSolucao = false;
     };
 
-    // Aplica de vez o movimento que esta animando (cubo + historico) e
-    // passa para o proximo da fila, se houver. E o mesmo "commit" que
-    // roda a cada frame quando a animacao termina (mais abaixo) - extraido
-    // em funcao para poder ser chamado de novo, sem esperar a animacao,
-    // se a janela fechar no meio de um giro (ver depois do laco principal).
     auto concluirMovimentoAtual = [&]() {
         cubo = mover(cubo, movAnimando);
         if (!animacaoEhDesfazer) historico.push_back(movAnimando);
@@ -152,14 +121,13 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
             tempoGiro = 0.0f;
         } else if (tocandoSolucao) {
             tocandoSolucao = false;
-            temSolucao = false;   // solucao inteira acabou de ser aplicada
+            temSolucao = false;
         }
     };
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
-        // --- camera: setas orbitam ao redor do cubo ---
         if (IsKeyDown(KEY_LEFT))  yaw -= 1.6f * dt;
         if (IsKeyDown(KEY_RIGHT)) yaw += 1.6f * dt;
         if (IsKeyDown(KEY_UP))    pitch += 1.3f * dt;
@@ -170,7 +138,6 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         camera.position.y = distancia * sinf(pitch);
         camera.position.z = distancia * cosf(pitch) * cosf(yaw);
 
-        // --- teclado: giros, desfazer, aplicar solucao, sair ---
         bool shift = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
         if (IsKeyPressed(KEY_U)) comecarMovimento(shift ? 2 : 0, false);
         if (IsKeyPressed(KEY_R)) comecarMovimento(shift ? 5 : 3, false);
@@ -199,22 +166,20 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
             tocandoSolucao = true;
         }
 
-        // --- avanca a animacao do giro atual ---
         if (movAnimando >= 0) {
             tempoGiro += dt;
             if (tempoGiro >= DURACAO) concluirMovimentoAtual();
         }
 
-        // --- desenha ---
         auto adesivos = facelets(cubo);
         int faceAnimada = (movAnimando >= 0) ? movAnimando / 3 : -1;
         float progresso = (movAnimando >= 0) ? (tempoGiro / DURACAO) : 0.0f;
         if (progresso > 1.0f) progresso = 1.0f;
         float ang = (movAnimando >= 0) ? anguloGraus(movAnimando % 3, progresso) : 0.0f;
         float eixo[3] = {0, 0, 0};
-        if (faceAnimada == 0) eixo[1] = 1;        // U gira em torno de y
-        else if (faceAnimada == 1) eixo[0] = 1;   // R gira em torno de x
-        else if (faceAnimada == 2) eixo[2] = 1;   // F gira em torno de z
+        if (faceAnimada == 0) eixo[1] = 1;
+        else if (faceAnimada == 1) eixo[0] = 1;
+        else if (faceAnimada == 2) eixo[2] = 1;
 
         BeginDrawing();
         ClearBackground(FUNDO);
@@ -246,14 +211,6 @@ void abrirJanela3D(Cubo &cubo, std::vector<int> &historico,
         EndDrawing();
     }
 
-    // A janela pode fechar (ESC, ou o X) no meio de uma animacao - por
-    // exemplo, logo depois de 'z' (desfazer) ou de espaco (aplicar a
-    // solucao), antes dos ~0.16s do giro terminarem. Sem isto, o cubo
-    // devolvido ao console ficaria "pela metade": o historico ja teria
-    // sido atualizado (em 'z') ou a solucao ja teria sido marcada como
-    // aplicada, mas o cubo em si nao teria o(s) ultimo(s) giro(s). Termina
-    // de aplicar tudo o que ainda estiver pendente, na hora, sem esperar
-    // a animacao, para o console sempre receber um estado consistente.
     while (movAnimando >= 0) concluirMovimentoAtual();
 
     CloseWindow();

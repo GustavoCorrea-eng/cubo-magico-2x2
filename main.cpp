@@ -1,10 +1,3 @@
-// ============================================================
-// main.cpp - Cubo magico 2x2x2: interface de texto colorida
-//
-// O jogador pode girar o cubo com uma unica tecla (sem apertar
-// Enter), ou pedir para uma das tres IAs resolver e mostrar o
-// caminho encontrado.
-// ============================================================
 #include <cctype>
 #include <cstdio>
 #include <iostream>
@@ -28,17 +21,10 @@ static std::string mensagem = MENSAGEM_INICIAL;
 
 static bool temSolucao = false;
 static Resultado ultimaBusca;
-static bool modoIsometrico = false;   // false = planificacao (6 faces), true = vista de canto (3 faces)
+static bool modoIsometrico = false;
 
 static void limparTela() { std::printf("\x1b[2J\x1b[H"); }
 
-// ------------------------------------------------------------
-// Mostra cada movimento como as teclas que voce apertaria para
-// fazer o mesmo giro na mao: minuscula = horario, maiuscula =
-// anti-horario, e um giro de 180 graus vira a mesma tecla
-// repetida duas vezes (porque e exatamente isso: dois giros de
-// 90 graus seguidos). Assim a solucao mostrada na tela e a
-// solucao "digitavel" - nao precisa traduzir notacao nenhuma.
 static std::string teclasDoMovimento(int mov)
 {
     static const char LETRA[3] = {'u', 'r', 'f'};
@@ -48,7 +34,7 @@ static std::string teclasDoMovimento(int mov)
 
     if (variacao == 0) return std::string(1, horario);
     if (variacao == 2) return std::string(1, antiHorario);
-    return std::string(1, horario) + " " + std::string(1, horario);   // 180 graus
+    return std::string(1, horario) + " " + std::string(1, horario);
 }
 
 static std::string nomesDosPassos(const std::vector<int> &passos)
@@ -103,7 +89,6 @@ static void desenharTela()
     std::printf("   >> %s\n", mensagem.c_str());
 }
 
-// ------------------------------------------------------------
 static void jogar(int mov)
 {
     cubo = mover(cubo, mov);
@@ -122,9 +107,6 @@ static void desfazer()
     mensagem = "Ultimo movimento desfeito.";
 }
 
-// Reset completo: volta tudo ao estado de quando o programa acabou de abrir
-// (cubo resolvido, sem historico, sem busca guardada, semente/tamanho de
-// embaralhamento padrao). Diferente da tecla 'c', que so resolve o cubo.
 static void resetarPrograma()
 {
     cubo = cuboResolvido();
@@ -182,8 +164,6 @@ static void resolver(int estrategia)
                    : std::string(nomes[estrategia]) + " nao encontrou solucao.";
 }
 
-// Roda as tres estrategias no cubo atual e mostra uma tabela comparando
-// estados visitados, estados gerados, tamanho da solucao e tempo.
 static void compararTodas()
 {
     static const char *nomes[3] = {
@@ -237,7 +217,6 @@ static void compararTodas()
     std::fflush(stdout);
     lerTecla();
 
-    // guarda o resultado do A* como a "ultima busca", pronta para aplicar com 'a'
     if (r[2].encontrou) { ultimaBusca = r[2]; temSolucao = true; }
     mensagem = "Comparacao concluida. As tres acharam solucoes de mesmo tamanho? Veja a tabela.";
 }
@@ -261,7 +240,6 @@ static void aplicarSolucao()
     mensagem = "Solucao aplicada - o cubo esta resolvido.";
 }
 
-// Devolve false quando o usuario pede para sair.
 static bool tratarTecla(int tecla)
 {
     switch (tecla) {

@@ -1,17 +1,3 @@
-# Simulador de Cubo Magico 2x2x2
-#
-#   make          compila o programa basico (so texto, gera cubo2x2)
-#   make 3d       compila TAMBEM com a janela 3D de verdade (raylib) -
-#                 precisa ter o raylib instalado (veja abaixo)
-#   make clean    apaga os executaveis
-#
-# No Windows (MSYS2 UCRT64) o "make" costuma ser instalado como
-# "mingw32-make":  pacman -S mingw-w64-ucrt-x86_64-make
-# Se preferir nao instalar nada, os comandos g++ do README fazem o mesmo.
-#
-# Para "make 3d", instale o raylib uma vez (MSYS2 UCRT64):
-#   pacman -S mingw-w64-ucrt-x86_64-raylib
-
 CXX     = g++
 CXXFLAGS = -Wall -Wextra -O2 -std=c++17
 
