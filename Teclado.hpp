@@ -7,6 +7,8 @@
 // o programa inteiro, porque aqui a leitura pode bloquear
 // (esperar o usuario apertar algo) sem problema.
 // ============================================================
+
+// Garante que este arquivo so seja incluido uma vez por compilacao.
 #pragma once
 
 // Bloqueia ate o usuario apertar uma tecla e devolve o caractere.

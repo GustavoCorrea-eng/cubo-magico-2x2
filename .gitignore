@@ -1,8 +1,14 @@
+# Lista de arquivos que o git deve IGNORAR (nao entram no repositorio).
+
 # executaveis gerados localmente - nao versionar
+# .exe: programa compilado no Windows (cubo2x2.exe, cubo2x2-3d.exe)
 *.exe
+# .o e .obj: arquivos objeto intermediarios da compilacao
 *.o
 *.obj
+# .out: executavel padrao gerado no Linux/macOS
 *.out
 
 # artefatos de build
+# pasta onde eventuais compilacoes de teste poderiam ser feitas
 build/
