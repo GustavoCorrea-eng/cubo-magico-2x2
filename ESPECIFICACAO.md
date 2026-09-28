@@ -61,7 +61,7 @@ livres e a sétima é consequência: `3^6 = 729` combinações de orientação.
 Total: `7! × 3^6 = 3.674.160` estados — a constante `N_ESTADOS` em `Cubo.hpp`.
 
 **Índice único do estado** — `uint32_t indiceDoEstado(const Cubo &c)`
-(`Cubo.cpp:76`): combina duas contas num único inteiro de 0 a 3.674.159:
+(`Cubo.cpp:49`): combina duas contas num único inteiro de 0 a 3.674.159:
 
 - **Código de Lehmer** da permutação `cp[0..6]`: para cada posição `i`, conta
   quantas posições depois dela (`j > i`) têm peça menor (`cp[j] < cp[i]`), e
@@ -91,7 +91,7 @@ Cada um dos 9 movimentos tem código `face*3 + variacao`, com `face` em
 `{0=U, 1=R, 2=F}` e `variacao` em `{0=90° horário, 1=180°, 2=90°
 anti-horário}`.
 
-A função de base é `umQuartoDeVolta(o, face)` (`Cubo.cpp:47`), que usa duas
+A função de base é `umQuartoDeVolta(o, face)` (`Cubo.cpp:38`), que usa duas
 tabelas fixas por face:
 
 - `PERM[face][i]`: de qual posição vem a peça que passa a ocupar `i`, num
@@ -141,8 +141,8 @@ ponteiros de função manuais que a mesma ideia usaria em C.
 ## 5. Função avaliadora e heurística (`Busca.cpp`)
 
 ```cpp
-bool ehObjetivo(const Cubo &c) { return estaResolvido(c); }        // Busca.cpp:62
-int  heuristica(const Cubo &c);                                     // Busca.cpp:78
+bool ehObjetivo(const Cubo &c) { return estaResolvido(c); }        // Busca.cpp:48
+int  heuristica(const Cubo &c);                                     // Busca.cpp:50
 ```
 
 `heuristica(c) = ⌈ fora(c) / 4 ⌉`, onde `fora(c)` é a quantidade de cantos
@@ -177,7 +177,7 @@ preciso reabrir nós expandidos.
 mais forte (ex.: um *pattern database*) reduziria ainda mais, mas não foi
 necessária para o desempenho exigido.
 
-## 6. O laço de busca único (`Busca.cpp:101`)
+## 6. O laço de busca único (`Busca.cpp:58`)
 
 ```cpp
 static void lacoDeBusca(Fronteira &fr, MemoriaDaBusca &mem, const Cubo &inicial,
@@ -255,7 +255,7 @@ liberados automaticamente pelo destrutor do `std::vector` ao sair de escopo
 (RAII) — não há `free`/`liberar` manual, ao contrário de uma implementação
 em C pura.
 
-## 7. As três estratégias públicas (`Busca.cpp:167,180,196`)
+## 7. As três estratégias públicas (`Busca.cpp:109,122,135`)
 
 | Função | Fronteira usada | Parâmetro extra | Observação |
 |---|---|---|---|
@@ -329,13 +329,13 @@ cubo, histórico, `ultimaBusca`, e devolve `semente`/`tamanhoEmbaralho` às
 constantes `SEMENTE_PADRAO`/`TAMANHO_PADRAO` (2024/9) — o estado fica
 idêntico ao de quando o `main()` inicializou essas variáveis globais.
 
-`teclasDoMovimento(mov)` (`main.cpp:35`) traduz um código de movimento para
+`teclasDoMovimento(mov)` (`main.cpp:28`) traduz um código de movimento para
 as teclas que o jogador apertaria na mão (minúscula = horário, maiúscula =
 anti-horário, letra repetida = 180°) — usada tanto na mensagem de `jogar()`
-quanto na lista de passos da solução (`nomesDosPassos`, `main.cpp:47`), para
+quanto na lista de passos da solução (`nomesDosPassos`, `main.cpp:40`), para
 que a solução mostrada seja diretamente "digitável", sem tradução de notação.
 
-`compararTodas()` (`main.cpp:159`, tecla `m`) roda as três estratégias no
+`compararTodas()` (`main.cpp:167`, tecla `m`) roda as três estratégias no
 mesmo cubo em sequência e imprime uma tabela (estados visitados, gerados,
 tamanho da solução e tempo, lado a lado) — útil para mostrar na arguição, ao
 vivo, que o A\* visita muito menos estados que as outras duas para a mesma
@@ -413,18 +413,18 @@ opções, o que ficou fora do escopo deste extra.
 
 | Requisito | Onde |
 |---|---|
-| Estado | `struct Cubo` (`Cubo.hpp:39`) |
-| Função sucessora | `mover()` (`Cubo.cpp:59`) |
-| Função avaliadora | `ehObjetivo()` (`Busca.cpp:62`) |
+| Estado | `struct Cubo` (`Cubo.hpp:13`) |
+| Função sucessora | `mover()` (`Cubo.cpp:49`) |
+| Função avaliadora | `ehObjetivo()` (`Busca.cpp:48`) |
 | Interface de visualização/manipulação | `imprimirCubo()` e `imprimirCuboIso()` (`Cubo.cpp`) + `main.cpp` inteiro; extra: `abrirJanela3D()` (`Janela3D.cpp`, só em `make 3d`) |
-| Busca em Largura | `buscaEmLargura()` (`Busca.cpp:167`) |
-| Profundidade Limitada Iterativa | `buscaProfundidadeIterativa()` (`Busca.cpp:196`) |
-| A\* com heurística | `buscaAEstrela()` (`Busca.cpp:180`) + `heuristica()` (`Busca.cpp:78`) |
-| Laço único, independente da estrutura | `lacoDeBusca()` (`Busca.cpp:101`) |
-| Jogar ou escolher IA | `tratarTecla()` (`main.cpp:237`) |
-| Contagem de estados visitados | `Resultado::visitados`, exibido em `desenharTela()` e em `compararTodas()` (`main.cpp:159`) |
-| Passos da solução de forma intuitiva | `teclasDoMovimento()`/`nomesDosPassos()` (`main.cpp:35,47`) + `aplicarSolucao()` (`main.cpp:217`) |
-| Cubo inicial refeito por semente | `embaralhar()` (`Cubo.cpp:103`) + `embaralharAgora()` (`main.cpp:112`) |
+| Busca em Largura | `buscaEmLargura()` (`Busca.cpp:109`) |
+| Profundidade Limitada Iterativa | `buscaProfundidadeIterativa()` (`Busca.cpp:135`) |
+| A\* com heurística | `buscaAEstrela()` (`Busca.cpp:122`) + `heuristica()` (`Busca.cpp:50`) |
+| Laço único, independente da estrutura | `lacoDeBusca()` (`Busca.cpp:58`) |
+| Jogar ou escolher IA | `tratarTecla()` (`main.cpp:243`) |
+| Contagem de estados visitados | `Resultado::visitados`, exibido em `desenharTela()` e em `compararTodas()` (`main.cpp:167`) |
+| Passos da solução de forma intuitiva | `teclasDoMovimento()`/`nomesDosPassos()` (`main.cpp:28,40`) + `aplicarSolucao()` (`main.cpp:224`) |
+| Cubo inicial refeito por semente | `embaralhar()` (`Cubo.cpp:81`) + `embaralharAgora()` (`main.cpp:122`) |
 
 ## 12. Perguntas prováveis na arguição
 
@@ -454,8 +454,8 @@ comparamos pixel a pixel. Bateu (0-1 pixel de diferença, só anti-aliasing)
 nos 9 movimentos, em 5 cubos diferentes. Detalhe na seção 10.1.
 
 **"O laço realmente não muda entre as três buscas? Provem."**
-Sim: `lacoDeBusca` (`Busca.cpp:101`) é chamado nas três funções públicas
-(`Busca.cpp:167,180,196`) exatamente com a mesma assinatura, e a única coisa
+Sim: `lacoDeBusca` (`Busca.cpp:58`) é chamado nas três funções públicas
+(`Busca.cpp:109,122,135`) exatamente com a mesma assinatura, e a única coisa
 que muda entre as chamadas é qual subclasse de `Fronteira` é instanciada
 (`FilaFronteira`, `PilhaFronteira` ou `PrioridadeFronteira`) — o corpo da
 função `lacoDeBusca` não tem nenhum `if` que diferencie estratégias.
