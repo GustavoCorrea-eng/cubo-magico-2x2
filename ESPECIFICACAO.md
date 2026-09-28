@@ -329,13 +329,13 @@ cubo, histórico, `ultimaBusca`, e devolve `semente`/`tamanhoEmbaralho` às
 constantes `SEMENTE_PADRAO`/`TAMANHO_PADRAO` (2024/9) — o estado fica
 idêntico ao de quando o `main()` inicializou essas variáveis globais.
 
-`teclasDoMovimento(mov)` (`main.cpp:35`) traduz um código de movimento para
+`teclasDoMovimento(mov)` (`main.cpp:42`) traduz um código de movimento para
 as teclas que o jogador apertaria na mão (minúscula = horário, maiúscula =
 anti-horário, letra repetida = 180°) — usada tanto na mensagem de `jogar()`
-quanto na lista de passos da solução (`nomesDosPassos`, `main.cpp:47`), para
+quanto na lista de passos da solução (`nomesDosPassos`, `main.cpp:54`), para
 que a solução mostrada seja diretamente "digitável", sem tradução de notação.
 
-`compararTodas()` (`main.cpp:159`, tecla `m`) roda as três estratégias no
+`compararTodas()` (`main.cpp:187`, tecla `m`) roda as três estratégias no
 mesmo cubo em sequência e imprime uma tabela (estados visitados, gerados,
 tamanho da solução e tempo, lado a lado) — útil para mostrar na arguição, ao
 vivo, que o A\* visita muito menos estados que as outras duas para a mesma
@@ -421,10 +421,10 @@ opções, o que ficou fora do escopo deste extra.
 | Profundidade Limitada Iterativa | `buscaProfundidadeIterativa()` (`Busca.cpp:196`) |
 | A\* com heurística | `buscaAEstrela()` (`Busca.cpp:180`) + `heuristica()` (`Busca.cpp:78`) |
 | Laço único, independente da estrutura | `lacoDeBusca()` (`Busca.cpp:101`) |
-| Jogar ou escolher IA | `tratarTecla()` (`main.cpp:237`) |
-| Contagem de estados visitados | `Resultado::visitados`, exibido em `desenharTela()` e em `compararTodas()` (`main.cpp:159`) |
-| Passos da solução de forma intuitiva | `teclasDoMovimento()`/`nomesDosPassos()` (`main.cpp:35,47`) + `aplicarSolucao()` (`main.cpp:217`) |
-| Cubo inicial refeito por semente | `embaralhar()` (`Cubo.cpp:103`) + `embaralharAgora()` (`main.cpp:112`) |
+| Jogar ou escolher IA | `tratarTecla()` (`main.cpp:265`) |
+| Contagem de estados visitados | `Resultado::visitados`, exibido em `desenharTela()` e em `compararTodas()` (`main.cpp:187`) |
+| Passos da solução de forma intuitiva | `teclasDoMovimento()`/`nomesDosPassos()` (`main.cpp:42,54`) + `aplicarSolucao()` (`main.cpp:245`) |
+| Cubo inicial refeito por semente | `embaralhar()` (`Cubo.cpp:103`) + `embaralharAgora()` (`main.cpp:140`) |
 
 ## 12. Perguntas prováveis na arguição
 
