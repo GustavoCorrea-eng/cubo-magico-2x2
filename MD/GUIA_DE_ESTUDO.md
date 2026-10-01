@@ -930,59 +930,211 @@ três funções públicas (`buscaEmLargura`, `buscaAEstrela`,
 `buscaProfundidadeIterativa`) — tudo o que acontece por dentro fica
 escondido aqui.
 
-## 3.1 — `Fronteira.hpp`: as 3 estruturas de dados
+## 3.1 — `Fronteira.hpp`: as 3 estruturas de dados (entenda bem essa parte — é a base de tudo)
 
 O enunciado do trabalho pede que as três buscas usem **o mesmo laço**,
 trocando só a estrutura de dados que guarda os estados esperando pra ser
-examinados. Por isso existe essa "interface comum":
+examinados. Essa seção é sobre como o código garante isso de verdade — não
+é um "jeito de fazer", é a peça que faz o laço único (seção 3.5) nem saber
+que existem três estratégias diferentes.
+
+### A ideia central: uma "promessa" que três estruturas diferentes cumprem
 
 ```cpp
 class Fronteira {
 public:
+    virtual ~Fronteira() = default;
     virtual void inserir(int idNo, int chave) = 0;
     virtual int  remover() = 0;
     virtual bool vazia() const = 0;
+    virtual const char *nome() const = 0;
 };
 ```
 
-Isso declara que **qualquer** `Fronteira` tem que saber fazer 3 coisas:
-`inserir` um item, `remover` o próximo item (segundo a própria regra dela),
-e dizer se está `vazia`. O `= 0` quer dizer que essa classe não tem código
-próprio pra essas funções — quem tem são as 3 classes que "herdam" dela:
+`class` é como `struct` (que já vimos no `Cubo`), só que pensada pra também
+guardar **funções** junto com os dados, não só variáveis. `Fronteira` aqui
+não é uma estrutura "normal" — ela é uma **classe abstrata**: repara no
+`= 0` no final de cada função. Isso quer dizer "essa função existe no
+nome, mas não tem código nenhum aqui" — é só uma **promessa**: "toda
+`Fronteira` de verdade vai saber fazer essas 4 coisas: inserir um item,
+remover o próximo (segundo a própria regra dela), dizer se está vazia, e
+dizer seu nome." Por causa disso, não dá pra criar uma variável do tipo
+`Fronteira` sozinha — só das classes que **cumprem essa promessa**,
+escrevendo o código de verdade pra cada uma dessas 4 funções. São 3 dessas
+classes no projeto, uma por estratégia de busca.
 
-**`FilaFronteira`** (FIFO — primeiro que entra, primeiro que sai):
-```cpp
-void inserir(int idNo, int) override { d.push_back(idNo); }
-int  remover() override { int n = d.front(); d.pop_front(); return n; }
-```
-Insere no fim, remove do início. Usada pela **Busca em Largura**: como
-sempre tira quem está esperando há mais tempo, ela examina os estados
-"camada por camada" (todos com 1 movimento antes de qualquer um com 2).
+**Por que fazer assim, em vez de simplesmente usar `if`/`else` pra escolher
+a estrutura dentro do laço?** Porque, se fosse `if (estrategia == LARGURA)
+usa_fila(); else if (...) usa_pilha();`, o laço de busca **precisaria
+saber** que existem três estratégias — violaria exatamente o requisito do
+enunciado de ter um laço só, que não muda. Com a classe abstrata, o laço
+(seção 3.5) recebe só uma `Fronteira &fr` genérica e chama `fr.inserir(...)`
+e `fr.remover()` sem fazer a menor ideia de qual das três está por trás —
+o C++ resolve isso sozinho, em tempo de execução (olha pra classe de
+verdade do objeto que foi passado e chama a função certa dela). Essa
+técnica se chama **polimorfismo**.
 
-**`PilhaFronteira`** (LIFO — último que entra, primeiro que sai):
-```cpp
-void inserir(int idNo, int) override { v.push_back(idNo); }
-int  remover() override { int n = v.back(); v.pop_back(); return n; }
-```
-Insere no topo, remove do topo. Usada pela **Busca em Profundidade
-Limitada**: como sempre continua pelo caminho mais recente, ela "mergulha"
-fundo por um caminho antes de voltar pra tentar outro.
+### 1) `FilaFronteira` — fila FIFO (primeiro que entra, primeiro que sai)
 
-**`PrioridadeFronteira`** (heap — sempre tira quem tem a menor "chave"):
 ```cpp
-void inserir(int idNo, int chave) override {
-    dados.push_back({idNo, chave, contador++});
-    std::push_heap(dados.begin(), dados.end(), Comparador());
-}
-int remover() override {
-    std::pop_heap(dados.begin(), dados.end(), Comparador());
-    ...
-}
+class FilaFronteira : public Fronteira {
+    std::deque<int> d;
+public:
+    void inserir(int idNo, int) override { d.push_back(idNo); }
+    int  remover() override { int n = d.front(); d.pop_front(); return n; }
+    bool vazia() const override { return d.empty(); }
+    const char *nome() const override { return "Fila (FIFO)"; }
+};
 ```
-Usa um **heap binário** (uma estrutura organizada pra sempre achar o menor
-valor rapidamente). Usada pelo **A\***: a "chave" de cada item é o quanto
-aquele caminho parece promissor (quanto menor, melhor), então ela sempre
-examina primeiro o estado que parece mais perto da solução.
+
+`: public Fronteira` é o jeito do C++ dizer "essa classe cumpre a promessa
+da `Fronteira`". `override` em cada função confirma "sim, essa é uma das
+funções que eu prometi implementar" (o compilador rejeita se você escrever
+o nome errado por engano).
+
+Por dentro, `d` é um `std::deque<int>` (uma lista de números que permite
+inserir/remover dos dois lados com eficiência). `inserir` sempre coloca no
+**fim** (`push_back`); `remover` sempre tira do **início** (`front()` lê,
+`pop_front()` tira). Repara que o segundo parâmetro de `inserir` (a
+`chave`) nem tem nome — essa estrutura **ignora completamente** a
+prioridade, só importa a ordem de chegada.
+
+**Exemplo, inserindo os ids `10, 20, 30` nessa ordem:**
+```
+inserir(10) → fila: [10]
+inserir(20) → fila: [10, 20]
+inserir(30) → fila: [10, 20, 30]
+remover()   → devolve 10, fila fica [20, 30]
+remover()   → devolve 20, fila fica [30]
+remover()   → devolve 30, fila fica []
+```
+Sai **na mesma ordem** que entrou. Usada pela **Busca em Largura**: como o
+laço sempre insere os sucessores de um estado *depois* dos sucessores dos
+estados anteriores, e a fila sempre entrega quem está esperando há mais
+tempo, o efeito é examinar os estados "camada por camada" — todos os de
+profundidade 1 antes de qualquer um de profundidade 2.
+
+### 2) `PilhaFronteira` — pilha LIFO (último que entra, primeiro que sai)
+
+```cpp
+class PilhaFronteira : public Fronteira {
+    std::vector<int> v;
+public:
+    void inserir(int idNo, int) override { v.push_back(idNo); }
+    int  remover() override { int n = v.back(); v.pop_back(); return n; }
+    bool vazia() const override { return v.empty(); }
+    const char *nome() const override { return "Pilha (LIFO)"; }
+};
+```
+
+Estrutura quase idêntica à fila, **só muda de qual lado se remove**:
+`inserir` continua colocando no fim (`push_back`), mas `remover` agora tira
+**do mesmo fim** (`back()`/`pop_back()`) em vez do início.
+
+**Mesmo exemplo, inserindo `10, 20, 30`:**
+```
+inserir(10) → pilha: [10]
+inserir(20) → pilha: [10, 20]
+inserir(30) → pilha: [10, 20, 30]
+remover()   → devolve 30, pilha fica [10, 20]
+remover()   → devolve 20, pilha fica [10]
+remover()   → devolve 10, pilha fica []
+```
+Sai na ordem **contrária** à fila — o mais recente primeiro. Usada pela
+**Busca em Profundidade Limitada Iterativa**: como ela sempre continua pelo
+estado mais recentemente descoberto, o efeito é "mergulhar fundo" por um
+único caminho até bater no limite de profundidade, só então voltando pra
+tentar outro ramo.
+
+### 3) `PrioridadeFronteira` — fila de prioridade (heap, sempre tira quem tem a menor chave)
+
+```cpp
+class PrioridadeFronteira : public Fronteira {
+    struct Item { int idNo, chave; unsigned long ordem; };
+    struct Comparador {
+        bool operator()(const Item &a, const Item &b) const
+        {
+            if (a.chave != b.chave) return a.chave > b.chave;
+            return a.ordem < b.ordem;
+        }
+    };
+    std::vector<Item> dados;
+    unsigned long contador = 0;
+
+public:
+    void inserir(int idNo, int chave) override
+    {
+        dados.push_back({idNo, chave, contador++});
+        std::push_heap(dados.begin(), dados.end(), Comparador());
+    }
+    int remover() override
+    {
+        std::pop_heap(dados.begin(), dados.end(), Comparador());
+        int n = dados.back().idNo;
+        dados.pop_back();
+        return n;
+    }
+    bool vazia() const override { return dados.empty(); }
+};
+```
+
+Essa é a mais elaborada das três — é a única que **realmente usa** a
+`chave` (as outras duas a ignoram). Por dentro, cada item guardado não é só
+um número: é um `Item` com três campos — `idNo` (o nó em si), `chave` (a
+prioridade — quanto menor, melhor) e `ordem` (um número que só cresce,
+`contador++`, registrando **em que ordem** aquele item foi inserido — serve
+só pra desempatar depois).
+
+**O que é um "heap binário":** é uma forma de organizar uma lista num
+vetor comum de modo que o **melhor item** (segundo alguma regra de
+comparação) sempre fique fácil de achar e tirar rapidamente, mesmo com
+milhares de itens — `push_heap`/`pop_heap` são funções prontas da
+biblioteca do C++ que mantêm essa organização automaticamente a cada
+inserção/remoção, desde que você diga **como comparar** dois itens (é pra
+isso que serve o `Comparador`).
+
+**Por que o `Comparador` parece "ao contrário":** por padrão, as funções de
+heap do C++ organizam pra sempre entregar o **maior** item primeiro. Como a
+gente quer o **menor** `chave` primeiro (o caminho mais barato), o
+`Comparador` inverte o sinal: `a.chave > b.chave` (não `<`) — isso faz o
+heap tratar "quem tem a *menor* chave" como se fosse "o maior", então é
+esse que sai primeiro. Se as chaves empatarem, desempata por `ordem`: quem
+foi inserido **por último** (`ordem` maior) sai primeiro entre os
+empatados.
+
+**Exemplo testado de verdade** (rodei esse código separadamente pra
+confirmar), inserindo nessa ordem: `inserir(10, chave=5)`,
+`inserir(20, chave=2)`, `inserir(30, chave=2)` — repara que `20` e `30`
+empatam em `chave=2`, mas `30` foi inserido depois:
+
+```
+ordem de remoção: 30, 20, 10
+```
+
+`10` sai por último porque tem a pior chave (`5`). Entre `20` e `30`
+(empatados em `2`), `30` sai primeiro porque foi inserido mais
+recentemente — exatamente a regra de desempate do `Comparador`.
+
+Usada pelo **A\***: a `chave` é `f = g + h` (seção 3.6.3) — quanto menor,
+mais promissor o caminho parece, então a estrutura sempre entrega pro laço
+o estado que parece mais perto da solução, não importa a ordem em que
+foram descobertos.
+
+### Juntando as três: a mesma sequência de inserções, resultados diferentes
+
+Se as três estruturas recebessem, na mesma ordem, os ids `10, 20, 30` (com
+chaves `5, 2, 2` — só a de prioridade usa isso), a ordem de remoção de cada
+uma seria completamente diferente:
+
+| Estrutura | Ordem de remoção |
+|---|---|
+| `FilaFronteira` (Largura) | `10, 20, 30` (ordem de chegada) |
+| `PilhaFronteira` (Prof. Iterativa) | `30, 20, 10` (o mais recente primeiro) |
+| `PrioridadeFronteira` (A\*) | `30, 20, 10` (nesse caso específico, por causa das chaves — numa busca de verdade, a ordem depende inteiramente de quão promissor cada estado parece) |
+
+É só essa diferença — **qual estrutura o `lacoDeBusca()` recebe** — que
+transforma o mesmo código de busca em três estratégias de IA
+completamente diferentes.
 
 ## 3.2 — `Busca.hpp`: o que uma busca devolve
 
