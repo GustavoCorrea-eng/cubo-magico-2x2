@@ -44,6 +44,14 @@ make 3d
 ./cubo2x2-3d.exe
 ```
 
+> **O `pacman` não funciona no PowerShell comum** (nem no terminal do VS
+> Code) — só dentro da janela **"MSYS2 UCRT64"** (menu Iniciar do Windows),
+> ou chamando pelo caminho completo:
+> `C:\msys64\usr\bin\pacman.exe -S mingw-w64-ucrt-x86_64-raylib`. Depois de
+> instalado, `make 3d` funciona normalmente em qualquer terminal — o
+> problema é só na hora de instalar o pacote. Detalhes em
+> `INSTALACAO_3D.md`.
+
 Dentro do programa, a tecla `j` abre a janela 3D (ver `Janela3D.hpp/.cpp`).
 O `.exe` gerado por `make 3d` depende de `raylib.dll` e `glfw3.dll` em tempo
 de execução (ficam em `ucrt64/bin` do MSYS2) — não é um binário standalone.
