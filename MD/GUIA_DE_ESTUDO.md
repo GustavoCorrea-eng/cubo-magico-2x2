@@ -1816,3 +1816,130 @@ antigos de `semente`/`tamanhoEmbaralho`, sem avisar que algo deu errado.
 > (`novoTamanho <= 40`) que falha, então o `std::cin` continua saudável e
 > as próximas tentativas de embaralhar funcionam normalmente. O programa só
 > não avisa que descartou aquele valor — mas não trava.
+
+## 7.6 — Por que essa heurística foi escolhida, e por que ela realmente funciona (prova completa)
+
+Essa pergunta vale a pena entender muito bem — é um dos itens que a
+avaliação do trabalho cobra explicitamente ("Implementar e explicar Busca
+A\*, incluindo a heurística escolhida").
+
+### A heurística, de novo
+
+```cpp
+int heuristica(const Cubo &c)
+{
+    int fora = 0;
+    for (int i = 0; i < 7; i++)
+        if (c.cp[i] != i || c.co[i] != 0) fora++;
+    return (fora + 3) / 4;
+}
+```
+
+`fora` conta quantos dos 7 cantos móveis (índices 0 a 6 — lembra, o canto 7
+é o `DBL`, sempre fixo) estão na posição errada ou torcidos. A heurística
+devolve `⌈fora / 4⌉` (o teto da divisão por 4 — `(fora+3)/4` é um truque
+clássico de fazer teto usando só divisão inteira, sem precisar de números
+decimais).
+
+### Por que escolher justamente "contar peças fora do lugar", e por que dividir por 4
+
+**O que faz uma heurística ser "boa" num problema de busca:** ela precisa
+ser (1) **barata de calcular** (porque é chamada toda vez que um estado
+novo é gerado — se fosse cara, perderia a vantagem de visitar menos
+estados), (2) **relacionada de verdade** com a distância até o objetivo
+(senão não ajuda a escolher melhor por onde ir), e (3) ter uma **garantia
+matemática** de não superestimar (senão o A\* perde a garantia de achar a
+solução ótima).
+
+Contar "quantas peças ainda estão erradas" é a métrica mais direta e barata
+que existe pra medir "quão longe" um cubo está do resolvido — um único
+`for` de 7 posições, sem nada custoso. Mas só contar `fora` sozinho (sem
+dividir por nada) já seria admissível (nunca precisa de mais movimentos do
+que peças erradas, na pior hipótese "uma peça por movimento") — só que seria
+uma estimativa **fraca demais**, sempre no mínimo tão alta quanto o
+`fora`, raramente ajudando a diferenciar estados.
+
+**A divisão por 4 não é um número escolhido "no chute" — ela vem direto da
+mecânica do jogo:** cada um dos 9 movimentos gira uma única face, e cada
+face mexe em **exatamente 4** das 7 posições de canto móveis:
+
+| Face | Posições de canto que ela toca (olhando a tabela `PERM`, `Cubo.cpp:13-17`) |
+|---|---|
+| U | `0, 1, 2, 3` |
+| R | `0, 3, 4, 6` |
+| F | `0, 1, 4, 5` |
+
+(nenhuma das três inclui a posição 7, o `DBL` fixo — por isso ele nunca
+entra na conta de `fora`). Como um único movimento só consegue alcançar 4
+posições, ele só consegue **"consertar"** no máximo 4 peças de uma vez — daí
+vem o `/4`: é literalmente "quantas rodadas de 4 peças são necessárias pra
+consertar todas as `fora`". Essa é a diferença entre uma heurística "boa
+porque parece funcionar na prática" e uma heurística com uma **prova
+matemática rigorosa**, amarrada direto nas regras do próprio quebra-cabeça.
+
+### Prova de admissibilidade (nunca superestima o custo real)
+
+**O que precisa ser provado:** pra qualquer cubo `c`, `heuristica(c) <=`
+número mínimo real de movimentos pra resolver `c`.
+
+**Prova:** seja `fora` o número de cantos móveis errados em `c`. Cada
+movimento só toca 4 das 7 posições móveis (tabela acima) — logo, **no
+máximo 4** cantos podem passar de "errado" pra "certo" num único movimento
+(os outros, no mínimo 3, ficam garantidamente intocados, nem a posição nem
+a torção mudam). Então, pra zerar `fora` cantos errados, são necessários
+**pelo menos** `⌈fora/4⌉` movimentos — não existe nenhuma sequência de
+movimentos que consiga fazer melhor que isso, porque cada um está limitado
+a consertar 4 por vez. Como `heuristica(c)` é **exatamente** esse valor
+`⌈fora/4⌉`, ela nunca é maior que o custo real — é, por definição,
+**admissível**. ∎
+
+### Prova de consistência (o valor muda no máximo 1 por movimento)
+
+**O que precisa ser provado:** pra qualquer estado `s` e qualquer sucessor
+`s'` (um movimento de distância), `heuristica(s) <= 1 + heuristica(s')`.
+
+**Prova, em duas partes:**
+
+1. **`fora` muda no máximo 4 por movimento.** Um movimento só mexe em 4
+   das 7 posições (de novo, a tabela acima) — as outras 3+ ficam
+   intocadas, então a contribuição delas pra `fora` não muda. Das 4
+   posições tocadas, na pior hipótese **todas as 4** viram de "certas" pra
+   "erradas" (aumentando `fora` em 4) ou de "erradas" pra "certas"
+   (diminuindo `fora` em 4) — não tem como mudar mais que isso, porque só
+   4 posições são afetadas.
+
+2. **Se `fora` muda no máximo 4, `⌈fora/4⌉` muda no máximo 1.** Isso é uma
+   propriedade da própria função "teto da divisão por 4": somar (ou
+   subtrair) exatamente 4 do número de dentro sempre soma (ou subtrai)
+   exatamente 1 do resultado (`⌈(x+4)/4⌉ = ⌈x/4⌉ + 1`, pra qualquer `x`).
+   E mudanças **menores** que 4 (1, 2 ou 3) nunca fazem o teto mudar mais
+   que 1 — o pior caso já é coberto pela mudança de exatamente 4.
+
+Juntando as duas partes: o valor de `heuristica` muda no máximo 1 por
+movimento, que é exatamente a definição de **consistente**. ∎
+
+**Por que isso garante a solução ótima do A\*:** consistência é uma
+condição mais forte que admissibilidade, e garante que, assim que o A\*
+retira um estado da fronteira e ele é o objetivo, o caminho até ali **já é
+o mais curto possível** — nunca é preciso "voltar atrás" e reabrir um nó já
+expandido com um caminho melhor depois.
+
+### Uma heurística honestamente fraca, mas que já resolve o problema
+
+Vale admitir isso na arguição em vez de esconder: como `fora` vai no máximo
+até 7 (os 7 cantos móveis), o valor da heurística nunca passa de
+`⌈7/4⌉ = 2` — ela só distingue "longe", "meio-longe" e "perto", quase nada
+de granularidade. Uma heurística mais forte seria possível (por exemplo,
+usando uma *pattern database*: pré-calcular, uma vez só, a distância real
+mínima pra resolver sub-grupos de peças, e usar isso em vez de uma conta
+simples) — mas isso exigiria uma etapa inteira de pré-processamento e uma
+tabela gigante, fora do escopo necessário pro trabalho.
+
+**Por que essa heurística fraca ainda foi a escolha certa aqui:** porque os
+resultados medidos já mostram uma vantagem enorme mesmo assim — nos testes
+feitos durante o desenvolvimento (seção 3.6.3), o A\* visitou de **9 a 35
+vezes menos estados** que as outras duas buscas, pra achar exatamente a
+mesma solução ótima. Trocar uma heurística simples e com prova matemática
+limpa por uma mais forte e muito mais complexa não compensaria o esforço
+extra, dado que o objetivo (ótimo + rápido o suficiente) já estava
+atingido.
