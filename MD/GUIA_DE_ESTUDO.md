@@ -787,16 +787,120 @@ semente sempre dá o mesmo resultado, em qualquer máquina.
 
 ## 2.8 — `movimentoPorNome()`, `mesmaFace()`, `movimentoInverso()` (linhas 101-127)
 
-Três funções pequenas de apoio:
+Três funções pequenas de apoio, todas trabalhando com o mesmo "código de
+movimento" (0-8) que já conhecemos.
 
-- `movimentoPorNome("R'")` → devolve o código `5` (faz o caminho inverso de
-  `NOME_MOVIMENTO`, que converte texto pra código).
-- `mesmaFace(movA, movB)` → `movA / 3 == movB / 3` — verdadeiro se os dois
-  movimentos giram a mesma face (independente da variação). Usado na busca
-  pra evitar girar a mesma face duas vezes seguidas (desperdício).
-- `movimentoInverso(mov)` → devolve o movimento que desfaz `mov`. Se a
-  variação for 180° (`v==1`), o inverso é ele mesmo. Senão, troca horário
-  por anti-horário (variação 0 vira 2, e vice-versa).
+### `movimentoPorNome()` — texto → código
+
+```cpp
+int movimentoPorNome(const std::string &s)
+{
+    if (s.empty()) return -1;
+    int face;
+    char c = (char) toupper((unsigned char) s[0]);
+    if      (c == 'U') face = 0;
+    else if (c == 'R') face = 1;
+    else if (c == 'F') face = 2;
+    else return -1;
+
+    int variacao;
+    if (s.size() == 1)                                  variacao = 0;
+    else if (s.size() == 2 && s[1] == '2')               variacao = 1;
+    else if (s.size() == 2 && (s[1] == '\'' || s[1] == '3')) variacao = 2;
+    else return -1;
+
+    return face * 3 + variacao;
+}
+```
+
+Essa função faz o caminho **contrário** de `NOME_MOVIMENTO` (a lista
+`{"U", "U2", "U'", ...}` que vimos lá no início do `Cubo.cpp`): em vez de
+transformar código em texto, transforma **texto** (notação clássica) em
+código.
+
+1. Se a string vier vazia, não dá pra processar — devolve `-1` (um valor
+   que não corresponde a nenhum movimento válido, usado como "erro").
+2. Olha só a **primeira letra**, convertida pra maiúscula com `toupper`
+   (assim aceita tanto `"r2"` quanto `"R2"`). Se não for `U`, `R` ou `F`,
+   também devolve `-1`.
+3. Decide a variação olhando o **tamanho da string** e o segundo caractere:
+   string de 1 caractere (só a letra) → variação 0 (horário). Segundo
+   caractere `'2'` → variação 1 (180°). Segundo caractere `'\''` (apóstrofo)
+   **ou** `'3'` → variação 2 (anti-horário) — repara que aceita duas
+   notações diferentes pro mesmo giro: `R'` ou `R3` (3 quartos de volta
+   horário é fisicamente o mesmo que 1 quarto anti-horário).
+4. No final, monta o código do jeito que já conhecemos: `face * 3 +
+   variacao`.
+
+**Exemplo, passo a passo, com `movimentoPorNome("F'")`:**
+- `s` não está vazia.
+- `c = toupper('F') = 'F'` → `face = 2`.
+- `s.size() == 2` e `s[1] == '\''` → `variacao = 2`.
+- Devolve `2 * 3 + 2 = 8` — que é exatamente o código de `F'` na tabela dos
+  9 movimentos.
+
+**Detalhe interessante:** essa função está escrita e pronta, mas se você
+procurar no resto do projeto, **ninguém a chama** — nem o `main.cpp`, nem a
+busca, nem a janela 3D. Ela existe como uma peça de apoio "pronta pra
+usar" (por exemplo, se um dia alguém quisesse deixar o jogador digitar
+`"R2"` direto, em vez de só apertar teclas), mas o programa atual não
+precisa dela pra funcionar.
+
+### `mesmaFace()` — duas faces são a mesma?
+
+```cpp
+bool mesmaFace(int movA, int movB) { return movA / 3 == movB / 3; }
+```
+
+Lembra que o código do movimento é `face * 3 + variacao`? Dividir por 3
+(divisão inteira, despreza o resto) **recupera só a face**, jogando fora a
+variação. Então essa função testa: "esses dois movimentos giram a mesma
+face, não importando o sentido?"
+
+**Exemplo:** `mesmaFace(0, 2)` — `0 / 3 = 0` e `2 / 3 = 0` → `true` (código
+0 é `U`, código 2 é `U'` — faces iguais, sentidos diferentes).
+`mesmaFace(3, 6)` — `3 / 3 = 1` e `6 / 3 = 2` → `false` (`R` e `F` são
+faces diferentes).
+
+**Onde é usada de verdade:** só em um lugar, `Busca.cpp:83`, dentro do
+`lacoDeBusca()` — é a poda que evita a busca gastar tempo girando a mesma
+face duas vezes seguidas (girar `R` e depois `R2` é sempre equivalente a
+girar só `R'` uma vez, que já seria gerado por outro ramo da busca).
+
+### `movimentoInverso()` — qual movimento desfaz este?
+
+```cpp
+int movimentoInverso(int mov)
+{
+    int face = mov / 3, v = mov % 3;
+    if (v == 1) return mov;
+    return face * 3 + (v == 0 ? 2 : 0);
+}
+```
+
+1. Decodifica `face` e a variação `v`, do mesmo jeito que `mover()` e
+   `teclasDoMovimento()` fazem.
+2. Se a variação for `1` (180°), o movimento **desfaz a si mesmo** — girar
+   180° duas vezes seguidas volta pro ponto de partida, então o inverso de
+   `R2` é o próprio `R2`.
+3. Senão, troca o sentido: variação `0` (horário) vira `2` (anti-horário),
+   e variação `2` vira `0` — é o `(v == 0 ? 2 : 0)` fazendo essa troca
+   (lembrando: se chegou até aqui, `v` só pode ser `0` ou `2`, porque o
+   caso `v == 1` já foi tratado e saiu na linha de cima).
+
+**Exemplo, com `movimentoInverso(3)`** (código 3 é `R`):
+- `face = 3/3 = 1`, `v = 3%3 = 0`.
+- `v` não é `1`, então cai na segunda linha: `1 * 3 + (0 == 0 ? 2 : 0) = 3 + 2 = 5`.
+- Código `5` é `R'` — exatamente o movimento que desfaz um `R`.
+
+**Outro exemplo, com `movimentoInverso(7)`** (código 7 é `F2`):
+- `face = 7/3 = 2`, `v = 7%3 = 1`.
+- `v == 1` → devolve `7`, o próprio código de entrada. `F2` desfaz `F2`.
+
+**Onde é usada de verdade:** duas vezes — em `desfazer()` (`main.cpp:105`,
+tecla `z` no console) e dentro da janela 3D (`Janela3D.cpp:149`, mesma
+tecla `z`, mas lá dentro). Nos dois casos, a lógica é a mesma: pega o
+último movimento do histórico e aplica o inverso dele no cubo.
 
 ## 2.9 — Visualização: `facelets()`, `imprimirCubo()`, `imprimirCuboIso()`, `habilitarCoresNoTerminal()`
 
