@@ -1463,29 +1463,111 @@ Estado: `struct Cubo` (`Cubo.hpp`). Função sucessora: `mover()`
 
 ## 7.1 — Onde está implementado o Estado, a Função Sucessora e a Função Avaliadora?
 
-**Estado** — `struct Cubo` (`Cubo.hpp:13-16`):
+### Estado — `struct Cubo` (`Cubo.hpp:13-16`)
+
 ```cpp
 struct Cubo {
-    std::array<uint8_t, N_CANTOS> cp;   // qual peça está em cada casa
-    std::array<uint8_t, N_CANTOS> co;   // orientação de cada peça
+    std::array<uint8_t, N_CANTOS> cp;   // qual peça está em cada casa (permutação)
+    std::array<uint8_t, N_CANTOS> co;   // orientação de cada peça: 0, 1 ou 2
 };
 ```
-Ver seção 2.1 pra entender `cp`/`co` por dentro.
 
-**Função sucessora** — `mover()` (`Cubo.cpp:49`):
+Um cubo 2x2x2 tem 8 peças de canto e nenhuma peça de centro. `cp` e `co`
+são duas listas de 8 números cada: `cp[i]` diz **qual peça** está na casa
+`i`; `co[i]` diz **o quanto essa peça está torcida** (0, 1 ou 2 — um canto
+tem 3 lados, então só 3 jeitos de estar virado).
+
+**Por que só essas duas listas, sem nada de posição 3D ou geometria:**
+porque o 2x2x2 não tem centro, então rotacionar o cubo inteiro na mão não
+muda o quebra-cabeça — só muda de que ângulo você olha pra ele. Pra não
+precisar representar a mesma configuração física de 24 jeitos diferentes, o
+código **fixa uma peça de referência** (a do canto `DBL`, posição 7 — nunca
+muda de lugar) e só gira as 3 faces que nunca a tocam: `U`, `R`, `F`. Isso
+ainda alcança qualquer configuração possível do cubo, só que agora cada uma
+tem exatamente **um** jeito de aparecer no código.
+
+**Tamanho do espaço de estados:** as 7 peças móveis podem ser permutadas de
+`7! = 5040` jeitos, e 6 delas têm orientação livre (a 7ª é sempre
+determinada pelas outras, porque a soma de todas as torções é sempre
+múltipla de 3) — `3⁶ = 729` combinações de orientação. No total:
+`7! × 3⁶ = 3.674.160` estados possíveis — a constante `N_ESTADOS`
+(`Cubo.hpp:9`).
+
+**Estado resolvido:** `cp[i] == i` e `co[i] == 0` para todo `i` — cada peça
+na sua própria casa, sem nenhuma torção.
+
+Explicação completa, com a tabela de numeração das 8 casas (`URF`, `UFL`,
+`ULB`...), na seção 2.1.
+
+### Função sucessora — `mover()` (`Cubo.cpp:49-57`)
+
 ```cpp
 Cubo mover(const Cubo &origem, int movimento)
+{
+    int face  = movimento / 3;
+    int vezes = movimento % 3 + 1;
+    Cubo atual = origem;
+    for (int k = 0; k < vezes; k++)
+        atual = umQuartoDeVolta(atual, face);
+    return atual;
+}
 ```
-Recebe um estado e um movimento (0-8), devolve o estado seguinte. Por
-dentro, usa `umQuartoDeVolta()` (`Cubo.cpp:38`) e as tabelas `PERM`/`TWIST`
-(`Cubo.cpp:13-22`). Ver seções 2.3 a 2.5.
 
-**Função avaliadora** — `ehObjetivo()` (`Busca.cpp:48`):
+Recebe um estado (`origem`) e um código de movimento (0 a 8 — face vezes 3
+mais variação, lembrando: `0=U, 1=U2, 2=U', 3=R, 4=R2, 5=R', 6=F, 7=F2,
+8=F'`), e devolve o estado seguinte. Não altera o `origem` — monta e
+devolve um `Cubo` novo.
+
+- `movimento / 3` (divisão inteira) recupera a **face**. `movimento % 3`
+  (o resto) recupera a **variação**, e soma `+1` pra virar "quantos quartos
+  de 90° aplicar": variação 0 → 1 quarto; variação 1 (180°) → 2 quartos;
+  variação 2 (anti-horário) → 3 quartos (3 giros de 90° no sentido horário
+  dá fisicamente o mesmo resultado que 1 giro anti-horário).
+- O `for` chama `umQuartoDeVolta()` (`Cubo.cpp:38-47`) repetidamente — essa
+  função usa duas tabelas fixas, `PERM` e `TWIST` (`Cubo.cpp:13-22`),
+  escritas uma única vez à mão olhando o cubo de verdade: `PERM[face][i]`
+  diz de qual casa veio a peça que vai ocupar a casa `i`; `TWIST[face][i]`
+  diz quanto essa peça torce ao chegar ali. O código nunca mais precisa
+  pensar em geometria depois dessas tabelas prontas — só consulta.
+
+**Exemplo rápido:** `mover(cuboResolvido(), 3)` (código 3 = `R`, horário).
+`face = 3/3 = 1` (R), `vezes = 3%3+1 = 1` quarto de volta. Aplica
+`umQuartoDeVolta` uma vez com a tabela de R, que move as peças das casas
+`0, 3, 4, 6` entre si (as únicas que a face R toca) e deixa as outras 4
+intactas.
+
+Explicação completa das tabelas `PERM`/`TWIST`, com o exemplo das
+"cadeiras" e uma tabela passo a passo, nas seções 2.3 a 2.5.
+
+### Função avaliadora — `ehObjetivo()` (`Busca.cpp:48`)
+
 ```cpp
 bool ehObjetivo(const Cubo &c) { return estaResolvido(c); }
 ```
-Só repassa pra `estaResolvido()` (`Cubo.cpp:31`), que confere se cada uma
-das 8 casas tem a peça certa e sem torção. Ver seção 2.2 e 3.4.
+
+Essa é a função avaliadora **de verdade**, usada dentro do laço de busca
+(seção 3.5) — mas ela não faz o trabalho sozinha, só repassa pra
+`estaResolvido()`, que mora no `Cubo.cpp:31-36`:
+
+```cpp
+bool estaResolvido(const Cubo &c)
+{
+    for (int i = 0; i < N_CANTOS; i++)
+        if (c.cp[i] != i || c.co[i] != 0) return false;
+    return true;
+}
+```
+
+Passa pelas 8 casas do cubo; se **qualquer uma** tiver a peça errada
+(`cp[i] != i`) ou estiver torcida (`co[i] != 0`), devolve `false` na hora,
+sem olhar o resto. Só devolve `true` se passar pelas 8 sem achar problema
+nenhum.
+
+**Onde ela entra na busca:** dentro de `lacoDeBusca()` (`Busca.cpp:58`),
+toda vez que um estado é retirado da estrutura de dados, a primeira coisa
+que acontece é perguntar `if (ehObjetivo(estado))` — se a resposta for
+`true`, a busca reconstrói o caminho e termina ali mesmo. É literalmente o
+passo "2.2 Avaliar estado" do enunciado do trabalho. Ver seção 3.4 e 3.5.
 
 ## 7.2 — Onde e o que são os métodos resolvidos por IA?
 
