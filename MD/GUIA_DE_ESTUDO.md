@@ -1149,16 +1149,50 @@ struct Resultado {
 };
 ```
 
-`encontrou`: achou solução ou não. `passos`: a lista de movimentos da
-solução, em ordem. `visitados`: quantos estados foram **retirados** da
-estrutura (examinados de verdade). `gerados`: quantos foram **colocados**
-na estrutura (nem todos acabam sendo examinados). `segundos`: tempo gasto.
+As três funções de busca (seção 3.6) devolvem **um `Resultado` cada**, por
+valor — é literalmente o pacote de informação que viaja de dentro do
+`Busca.cpp` até o `main.cpp` (`ultimaBusca = buscaEmLargura(cubo);`, por
+exemplo). Cada campo tem um papel específico:
+
+- **`encontrou`** (`bool`): a busca conseguiu achar o cubo resolvido ou
+  não. Nesse projeto, com um cubo alcançável de verdade, isso é sempre
+  `true` no final — mas o campo existe pra cobrir o caso de a busca acabar
+  sem solução (fronteira esvaziou primeiro).
+- **`passos`** (`std::vector<int>`): a lista dos movimentos da solução,
+  **na ordem em que devem ser aplicados** (não a ordem em que foram
+  descobertos de trás pra frente — isso é ajeitado dentro de
+  `reconstruirCaminho()`, seção 3.3). É essa lista que `main.cpp` usa em
+  `aplicarSolucao()` e em `nomesDosPassos()`.
+- **`visitados`**: quantos estados foram **retirados** da estrutura de
+  dados e de fato examinados (`r.visitados++` acontece uma vez por volta do
+  `while` em `lacoDeBusca`, seção 3.5) — é o número que aparece na tela como
+  "estados visitados".
+- **`gerados`**: quantos estados foram **colocados** na estrutura
+  (`r.gerados++`) — sempre maior ou igual a `visitados`, porque nem todo
+  estado gerado chega a ser retirado e examinado antes da busca terminar.
+- **`segundos`**: tempo de parede gasto, medido com `std::chrono` dentro de
+  cada função pública (seção 3.6) — não faz parte do `lacoDeBusca` em si.
+- **`limiteFinal`**: só é preenchido de verdade pela Profundidade Iterativa
+  (guarda em que limite de profundidade ela parou); nas outras duas, fica
+  no valor padrão `-1`.
+
+**Exemplo de como ficaria um `Resultado` de verdade**, depois de resolver
+um cubo embaralhado com 8 movimentos usando o A\*: `encontrou = true`,
+`passos = {3, 7, 0, 5, ...}` (8 números), `visitados` algo em torno de
+algumas dezenas de milhares (bem menos que a Largura resolveria o mesmo
+cubo), `gerados` um pouco maior que `visitados`, `segundos` uma fração de
+segundo, `limiteFinal = -1` (não é usado pelo A\*).
 
 Repara que cada campo já tem um valor padrão (`= false`, `= 0`...) — é por
 isso que, lá no `main.cpp`, `static Resultado ultimaBusca;` já nasce
-"vazia" sem precisar escrever nada mais.
+"vazia" sem precisar escrever nada mais, e também por isso que
+`resetarPrograma()` consegue zerar ela de novo só com `ultimaBusca =
+Resultado();` (seção 1.10) — cria um `Resultado` novo do zero, com todos os
+padrões, e substitui o antigo.
 
 ## 3.3 — `No` e `MemoriaDaBusca` (Busca.cpp, linhas 6-46)
+
+### `No` — um ponto na árvore de busca
 
 ```cpp
 struct No {
@@ -1169,34 +1203,141 @@ struct No {
 };
 ```
 
-Cada `No` representa um estado **dentro da árvore de busca** — guarda o
-cubo daquele estado, qual foi o "pai" dele (o nó anterior, de onde ele
-veio) e qual movimento levou até ali. É assim que, no final, dá pra
-**reconstruir o caminho completo** da solução: começa no nó objetivo e vai
-voltando pelos pais até chegar na raiz.
+Cada `No` representa um estado **dentro da árvore de busca** (diferente do
+`Cubo`, que é só a configuração das peças — um `No` é o cubo **mais** o
+contexto de como a busca chegou até ali). Guarda o cubo daquele estado
+(`cubo`), a posição do nó anterior no `pool` (`pai` — ver abaixo), qual
+movimento (0-8) levou do pai até aqui (`movimento`), e a quantos movimentos
+de distância da raiz ele está (`profundidade`).
+
+**Por que guardar o pai em vez do caminho inteiro:** se cada nó guardasse a
+lista completa de movimentos desde o início, cada nó ocuparia cada vez mais
+memória conforme a busca fosse fundo. Guardando só "quem é meu pai e qual
+movimento me trouxe até aqui", cada nó ocupa sempre o mesmo tamanho
+pequeno — o caminho completo só é **reconstruído** quando (e se) a solução
+é encontrada, andando de pai em pai (`reconstruirCaminho()`, logo abaixo).
+`pai = -1` identifica a raiz (o estado inicial, que não tem pai nenhum).
+
+### `MemoriaDaBusca` — tudo que uma busca precisa lembrar
 
 ```cpp
 struct MemoriaDaBusca {
     std::vector<No> pool;
     std::vector<uint8_t> menorProfundidade;
     std::vector<int> noDoEstado;
-    ...
+
+    MemoriaDaBusca()
+        : menorProfundidade(N_ESTADOS, 0xFF), noDoEstado(N_ESTADOS, -1)
+    {
+        pool.reserve(1 << 16);
+    }
 ```
 
-`pool`: guarda **todos** os nós já criados nessa busca (o "id" de um nó é
-só a posição dele nessa lista). `menorProfundidade`: um vetor com um item
-pra **cada estado possível** (lembra, `N_ESTADOS` = 3.674.160), guardando a
-menor profundidade em que aquele estado já foi visto — serve pra saber se
-vale a pena "reabrir" um estado por um caminho mais curto. `noDoEstado`:
-outro vetor do mesmo tamanho, dizendo qual nó (posição no `pool`)
-representa cada estado — assim, cada estado tem **no máximo um** nó vivo,
-nunca duplicado.
+Três listas, cada uma com um papel bem específico:
 
-`reiniciar()`: limpa tudo de novo (usado entre as rodadas da Profundidade
-Iterativa, que roda o laço várias vezes). `novoNo(...)`: cria um nó e
-devolve a posição dele no `pool`. `reconstruirCaminho(...)`: anda dos pais
-até a raiz, juntando os movimentos (de trás pra frente, depois inverte a
-ordem) — monta a lista final de `passos`.
+- **`pool`**: guarda **todos** os nós já criados nessa busca, um atrás do
+  outro. O "id" de um nó, usado em todo o resto do código (`atual`, `pai`,
+  `filho`...), é simplesmente **a posição dele dentro dessa lista** — não
+  existe um "número de identificação" separado, é só o índice.
+- **`menorProfundidade`**: uma lista com **um item pra cada um dos
+  3.674.160 estados possíveis** (`N_ESTADOS`) — não um item por nó, um item
+  por **estado do cubo em si**. Guarda a menor profundidade em que aquele
+  estado específico já foi alcançado nessa busca. Começa toda preenchida
+  com `0xFF` (255 em decimal — um valor que nunca seria uma profundidade de
+  verdade, usado como "ainda não vi esse estado").
+- **`noDoEstado`**: outra lista do mesmo tamanho gigante, dizendo **qual
+  nó** (posição no `pool`) representa cada estado — ou `-1` se esse estado
+  ainda não tem nenhum nó. É essa lista que garante que **cada estado tem
+  no máximo um nó vivo por vez**, nunca duplicado.
+
+O construtor (as linhas entre `MemoriaDaBusca()` e o primeiro `{`) já cria
+as duas listas gigantes (`menorProfundidade`, `noDoEstado`) com o tamanho
+certo e os valores iniciais (`0xFF` e `-1`), e reserva espaço de antemão
+pro `pool` (`1 << 16` é `65536`, um chute de tamanho inicial razoável, pra
+evitar ficar redimensionando a lista toda hora no começo da busca).
+
+### Por que precisa de `noDoEstado` (evitar nós duplicados)
+
+Imagina que a busca descobre o **mesmo cubo** por dois caminhos diferentes
+(isso acontece de verdade no cubo mágico — várias sequências diferentes de
+movimentos podem levar à mesma configuração). Sem `noDoEstado`, a busca
+criaria **um nó novo pra cada caminho**, mesmo representando o estado
+idêntico — desperdiçando memória e, pior, fazendo a busca re-examinar o
+mesmo cubo várias vezes como se fossem diferentes. Com `noDoEstado`, a
+segunda vez que aquele estado aparece, o código **reaproveita o nó já
+existente**, só atualizando o pai/movimento/profundidade **se** o novo
+caminho for mais curto que o antigo (é exatamente essa checagem que
+acontece em `lacoDeBusca`, seção 3.5, na linha com `menorProfundidade[idx]
+<= prof + 1`).
+
+```cpp
+    void reiniciar()
+    {
+        pool.clear();
+        std::fill(menorProfundidade.begin(), menorProfundidade.end(), 0xFF);
+        std::fill(noDoEstado.begin(), noDoEstado.end(), -1);
+    }
+```
+
+`reiniciar()`: esvazia o `pool` e devolve as duas listas gigantes pro
+estado inicial (tudo `0xFF`/`-1` de novo) — **sem realocar memória**, só
+reescrevendo os valores. É chamada entre cada rodada da Profundidade
+Iterativa (seção 3.6.2), que precisa recomeçar do zero a cada limite de
+profundidade novo.
+
+```cpp
+    int novoNo(const Cubo &c, int pai, int movimento, int profundidade)
+    {
+        pool.push_back({c, pai, (uint8_t) movimento, (uint8_t) profundidade});
+        return (int) pool.size() - 1;
+    }
+```
+
+`novoNo(...)`: monta um `No` com os dados recebidos, adiciona no fim do
+`pool`, e devolve a posição onde ele ficou (`pool.size() - 1`, já que acabou
+de ser adicionado no fim) — é esse número que vira o "id" do nó usado pelo
+resto do código.
+
+```cpp
+    void reconstruirCaminho(int no, Resultado &r) const
+    {
+        std::vector<int> invertido;
+        while (no >= 0 && pool[(size_t) no].pai >= 0) {
+            invertido.push_back(pool[(size_t) no].movimento);
+            no = pool[(size_t) no].pai;
+        }
+        r.passos.assign(invertido.rbegin(), invertido.rend());
+    }
+```
+
+`reconstruirCaminho(...)`: anda **de trás pra frente**, começando no nó
+objetivo e seguindo os pais até chegar na raiz, colecionando o movimento de
+cada nó no caminho. Como isso naturalmente monta a lista **ao contrário**
+(do último movimento pro primeiro), o `assign(invertido.rbegin(),
+invertido.rend())` final inverte ela antes de guardar em `r.passos` —
+`rbegin()`/`rend()` são um jeito de percorrer um vetor do fim pro começo.
+
+**Exemplo numérico completo**, imaginando uma solução de 3 movimentos —
+`R` (código 3), depois `F` (código 6), depois `U` (código 0) — representada
+por 4 nós no `pool`:
+
+| Nó (posição no pool) | `pai` | `movimento` | `profundidade` |
+|---|---|---|---|
+| 0 (raiz) | -1 | — (não importa) | 0 |
+| 1 | 0 | 3 (`R`) | 1 |
+| 2 | 1 | 6 (`F`) | 2 |
+| 3 (objetivo) | 2 | 0 (`U`) | 3 |
+
+Chamando `reconstruirCaminho(3, r)`:
+```
+no=3: pool[3].pai=2 (>=0)  → invertido=[0]        → no vira 2
+no=2: pool[2].pai=1 (>=0)  → invertido=[0, 6]      → no vira 1
+no=1: pool[1].pai=0 (>=0)  → invertido=[0, 6, 3]   → no vira 0
+no=0: pool[0].pai=-1       → para o laço (não entra mais)
+```
+`invertido = [0, 6, 3]` (na ordem que foi descoberto, do fim pro começo).
+Invertendo: `r.passos = [3, 6, 0]` — ou seja, `R`, depois `F`, depois `U`,
+exatamente a ordem certa de aplicar.
 
 ## 3.4 — `ehObjetivo()` e `heuristica()` (linhas 48-56)
 
@@ -1326,6 +1467,50 @@ possíveis:
   prioridade usa de verdade).
 
 **3. Se a estrutura esvaziar sem achar o objetivo:** `r.encontrou = false`.
+
+### Um exemplo rodado de verdade, pra ver o laço em ação
+
+Pra não inventar números, rodei o seguinte caso de verdade: um cubo
+**resolvido com um único movimento `R` aplicado** (código 3) — ou seja, a
+solução ótima é claramente **1 movimento** (`R'`, o inverso). Chamando
+`buscaEmLargura(c)` nesse cubo:
+
+```
+encontrou=1  visitados=7  gerados=40  passos=R'
+```
+
+A solução (`R'`) está certa, mas repara que ela **não** saiu na primeira
+tentativa, nem com só 1 ou 2 estados visitados — foram **7**. Por quê?
+
+1. O laço começa inserindo a raiz (o cubo com `R` já aplicado) e a retira
+   na primeira volta do `while` (**1º visitado**). Não é o objetivo, então
+   gera os 9 filhos dela (um por movimento) — `gerados` vai de 0 pra 9.
+2. Como a estrutura é uma **fila** (FIFO), ela precisa tirar os filhos **na
+   ordem em que entraram** — ou seja, o filho do movimento `U` (código 0)
+   sai antes do filho do movimento `R'` (código 5), mesmo `R'` sendo a
+   resposta certa, só porque `U` tem um código menor e foi inserido antes
+   no `for` do `lacoDeBusca`.
+3. Então o laço remove e examina, um por um, os filhos de `U`, `U2`, `U'`,
+   `R`, `R2` (**5 visitas a mais**, nenhuma delas o objetivo) — e cada uma
+   dessas, por não ser o objetivo, **também é expandida**, gerando ainda
+   mais filhos (netos da raiz) antes do laço sequer chegar perto do filho
+   de `R'`. É esse processo que explica o `gerados = 40`: não é só
+   "raiz + 9 filhos" (seriam 10) — é a raiz, os 9 filhos, **e** os filhos
+   dos 5 primeiros deles (que entram na fila antes do filho de `R'` ser
+   examinado).
+4. Só na **7ª remoção** (depois da raiz e de 5 outros filhos de primeira
+   camada) o laço finalmente tira o filho que corresponde ao movimento
+   `R'` — `ehObjetivo` devolve `true`, `reconstruirCaminho` monta
+   `passos = [5]` (código de `R'`), e a função termina.
+
+**A lição por trás desse número:** mesmo num caso onde a resposta é
+"óbvia" (um só movimento de distância), a Busca em Largura **insiste em
+examinar tudo da camada atual antes de aceitar qualquer resposta daquela
+camada** — ela não tem como "adivinhar" que `R'` era o movimento certo sem
+experimentar os outros primeiro, porque não usa heurística nenhuma. É
+exatamente esse comportamento "cego, mas completo" que a diferencia do
+A\* (seção 3.6.3), que usaria a heurística pra favorecer justamente o
+`R'` antes dos outros.
 
 ## 3.6 — As três buscas, uma por uma: o que cada uma É e como funciona
 
