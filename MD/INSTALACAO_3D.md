@@ -57,6 +57,19 @@ pacman -S mingw-w64-ucrt-x86_64-raylib
 Isso também traz o **glfw** junto (dependência do raylib) automaticamente.
 Confirme com `Y` se ele perguntar.
 
+> **Se você rodar isso no PowerShell comum (ou no terminal do VS Code) em
+> vez da janela "MSYS2 UCRT64"**, vai dar um erro tipo "o termo 'pacman'
+> não é reconhecido" — o `pacman.exe` fica numa pasta
+> (`C:\msys64\usr\bin`) que não está no PATH do Windows. Duas saídas:
+> abra mesmo a janela especial do menu Iniciar (passo acima), ou chame o
+> `pacman` pelo caminho completo, de dentro do terminal que você já está
+> usando:
+> ```powershell
+> C:\msys64\usr\bin\pacman.exe -S mingw-w64-ucrt-x86_64-raylib
+> ```
+> Depois de instalado, isso não afeta mais nada — `make 3d` e o `.exe`
+> gerado funcionam normalmente em qualquer terminal.
+
 > **Se der "Connection timed out"**: os espelhos (mirrors) do MSYS2 às vezes
 > ficam lentos. Rode o mesmo comando de novo — ele tenta outro espelho e
 > geralmente completa na segunda ou terceira tentativa. Se continuar
@@ -107,8 +120,7 @@ a mensagem de erro. O mais comum é faltar uma DLL — veja abaixo.
 
 **Erro sobre `raylib.dll` ou `glfw3.dll` não encontrada.**
 Essas DLLs ficam em `C:\msys64\ucrt64\bin` e são carregadas em tempo de
-execução (o `.exe` não é standalone — ver `ESPECIFICACAO.md`, seção 10.1,
-para o motivo técnico). Confirme que essa pasta está no PATH do Windows.
+execução (o `.exe` não é standalone). Confirme que essa pasta está no PATH do Windows.
 Se você compila o resto do projeto normalmente, ela já deve estar — mas se
 não estiver, adicione do mesmo jeito do Passo 1.5.
 

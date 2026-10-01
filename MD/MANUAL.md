@@ -33,6 +33,26 @@ make 3d
 .\cubo2x2-3d.exe
 ```
 
+> **Atenção com o `pacman`:** esse comando **não funciona** no PowerShell
+> comum nem no terminal do VS Code — vai dar um erro tipo "o termo 'pacman'
+> não é reconhecido". Isso acontece porque o `pacman.exe` fica numa pasta
+> (`C:\msys64\usr\bin`) que não está no PATH do Windows — só a pasta do
+> compilador (`C:\msys64\ucrt64\bin`) está. Pra rodar o `pacman`, você tem
+> duas opções:
+>
+> 1. Abra o menu Iniciar do Windows e procure por **"MSYS2 UCRT64"** (não é
+>    "MSYS2 MSYS" nem "MSYS2 MINGW64") — essa janela especial já sabe achar
+>    o `pacman` sozinha.
+> 2. Ou chame ele pelo caminho completo, de dentro do PowerShell que você já
+>    está usando:
+>    ```powershell
+>    C:\msys64\usr\bin\pacman.exe -S mingw-w64-ucrt-x86_64-raylib
+>    ```
+>
+> Depois de instalado, `make 3d` e `.\cubo2x2-3d.exe` funcionam normalmente
+> em qualquer terminal (PowerShell incluso) — o problema é só na hora de
+> instalar o pacote com o `pacman`.
+
 Nunca instalou o MSYS2/raylib antes, ou deu algum erro nesse caminho? O
 `INSTALACAO_3D.md` tem o passo a passo completo, do zero, com solução dos
 problemas mais comuns.
