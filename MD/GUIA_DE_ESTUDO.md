@@ -1352,3 +1352,129 @@ especificamente?"**
 Estado: `struct Cubo` (`Cubo.hpp`). Função sucessora: `mover()`
 (`Cubo.cpp`). Função avaliadora: `ehObjetivo()` (`Busca.cpp`), que só chama
 `estaResolvido()` (`Cubo.cpp`).
+
+---
+
+# PARTE 7 — Respostas diretas, pra consulta rápida antes da arguição
+
+## 7.1 — Onde está implementado o Estado, a Função Sucessora e a Função Avaliadora?
+
+**Estado** — `struct Cubo` (`Cubo.hpp:13-16`):
+```cpp
+struct Cubo {
+    std::array<uint8_t, N_CANTOS> cp;   // qual peça está em cada casa
+    std::array<uint8_t, N_CANTOS> co;   // orientação de cada peça
+};
+```
+Ver seção 2.1 pra entender `cp`/`co` por dentro.
+
+**Função sucessora** — `mover()` (`Cubo.cpp:49`):
+```cpp
+Cubo mover(const Cubo &origem, int movimento)
+```
+Recebe um estado e um movimento (0-8), devolve o estado seguinte. Por
+dentro, usa `umQuartoDeVolta()` (`Cubo.cpp:38`) e as tabelas `PERM`/`TWIST`
+(`Cubo.cpp:13-22`). Ver seções 2.3 a 2.5.
+
+**Função avaliadora** — `ehObjetivo()` (`Busca.cpp:48`):
+```cpp
+bool ehObjetivo(const Cubo &c) { return estaResolvido(c); }
+```
+Só repassa pra `estaResolvido()` (`Cubo.cpp:31`), que confere se cada uma
+das 8 casas tem a peça certa e sem torção. Ver seção 2.2 e 3.4.
+
+## 7.2 — Onde e o que são os métodos resolvidos por IA?
+
+As três ficam no `Busca.cpp`, como funções públicas (ver seção 3.6 pra
+explicação completa de cada uma):
+
+| Função | Linha | O que é |
+|---|---|---|
+| `buscaEmLargura()` | `Busca.cpp:109` | Busca em Largura (BFS) — examina todos os estados de uma profundidade antes de ir pra próxima. Usa `FilaFronteira`. |
+| `buscaProfundidadeIterativa()` | `Busca.cpp:135` | Profundidade Limitada Iterativa (IDDFS) — repete a busca aumentando o limite de profundidade (0, 1, 2...) até achar. Usa `PilhaFronteira`. |
+| `buscaAEstrela()` | `Busca.cpp:122` | A\* — usa a heurística (seção 3.4) pra examinar primeiro o estado que parece mais promissor. Usa `PrioridadeFronteira`. |
+
+As três são chamadas pelo `main.cpp` dentro de `resolver()` (`main.cpp:141`,
+teclas `1`/`2`/`3`) e de `compararTodas()` (`main.cpp:167`, tecla `m`).
+
+## 7.3 — Onde está o laço pedido na implementação da busca?
+
+`lacoDeBusca()`, função **estática** (só visível dentro do próprio arquivo)
+em `Busca.cpp:58`:
+
+```cpp
+static void lacoDeBusca(Fronteira &fr, MemoriaDaBusca &mem, const Cubo &inicial,
+                        int limite, Resultado &r)
+```
+
+É **o mesmo código**, sem nenhuma linha diferente, usado pelas três buscas
+da seção 7.2 — a identidade de cada estratégia vem inteiramente de qual
+`Fronteira` concreta é passada no parâmetro `fr` (fila, pilha ou fila de
+prioridade — `Fronteira.hpp`). Explicação completa, passo a passo, na
+seção 3.5.
+
+## 7.4 — Como foi implementado o 3D?
+
+Em `Janela3D.cpp`, usando a biblioteca gráfica **raylib** (só compila com
+`make 3d` — é um extra opcional, não obrigatório pro trabalho). Resumo
+(detalhes na Parte 5):
+
+- Duas tabelas fixas, `POS` e `DIR` (`Janela3D.cpp:10-30`), dizem onde cada
+  um dos 8 cantos fica no espaço e pra onde apontam seus 3 adesivos — mesma
+  ideia de tabela "escrita na mão uma vez" que `PERM`/`TWIST` usam no
+  `Cubo.cpp`.
+- `desenharCanto()` (`Janela3D.cpp:53`) desenha cada peça: um cubo preto
+  (`DrawCube`, função pronta do raylib) mais 3 adesivos coloridos colados
+  nas faces certas — a cor de cada adesivo vem de `facelets(cubo)`, a
+  **mesma função** que a planificação em texto usa (`Cubo.cpp`). Não existe
+  uma segunda versão do cubo só pro 3D.
+- A animação de um giro usa `rlPushMatrix()`/`rlRotatef()`/`rlPopMatrix()`
+  (funções do raylib que rotacionam tudo que for desenhado dentro desse
+  bloco) só nas 4 peças da face que está girando — as outras 4 são
+  desenhadas normalmente, por fora.
+- `abrirJanela3D()` (`Janela3D.cpp:78`) tem um laço parecido com o do
+  `main()` (`while (!WindowShouldClose())`), só que quem lê teclado é o
+  próprio raylib (`IsKeyPressed`), rodando 60 vezes por segundo.
+- Recebe `cubo`, `historico`, `temSolucao` e `ultimaBusca` **por
+  referência** direto do `main.cpp` — move no mesmo estado da sessão do
+  console, não numa cópia separada.
+
+## 7.5 — Por que digitar um número muito grande ou uma letra na semente trava o programa?
+
+**As duas situações são, por baixo dos panos, exatamente o mesmo bug** —
+não são dois problemas diferentes. A causa está em `embaralharAgora()`
+(`main.cpp:122`):
+
+```cpp
+unsigned int novaSemente;
+if (std::cin >> novaSemente) semente = novaSemente;
+```
+
+`std::cin >> novaSemente` tenta ler um número. Isso **falha** em dois
+casos:
+1. Você digita algo que não é número (uma letra, um símbolo).
+2. Você digita um número **grande demais** pra caber no tipo `unsigned int`
+   (que vai só até `4.294.967.295`) — por exemplo, `99999999999999`. O C++
+   trata isso como estouro de capacidade, e a leitura falha do mesmo jeito
+   que falharia com uma letra (testei isso na prática: os dois casos
+   deixam o `std::cin` exatamente no mesmo estado de erro).
+
+**O que acontece quando essa leitura falha, nos dois casos:** o `std::cin`
+entra num **estado de erro interno** e fica "travado" nele — a partir
+desse momento, **toda tentativa seguinte** de ler alguma coisa dele volta a
+falhar **instantaneamente**, sem nem esperar você digitar nada, até que
+alguém, em algum lugar do código, mande ele **limpar** esse erro
+(`std::cin.clear()`). Só que **esse código nunca faz essa limpeza em
+lugar nenhum** — então, depois da primeira vez que isso acontece, o
+`std::cin` fica quebrado **pelo resto da execução do programa**: toda vez
+que você apertar `e` depois disso, as perguntas aparecem na tela, mas as
+leituras falham na hora, e o programa sempre reaproveita os valores
+antigos de `semente`/`tamanhoEmbaralho`, sem avisar que algo deu errado.
+
+> Detalhe à parte: digitar um número **válido, mas fora do intervalo**
+> pedido pra quantidade de movimentos (por exemplo, `100`, quando o pedido
+> é de 1 a 40) é uma situação **diferente e mais branda** — ali a leitura
+> em si **funciona** (`100` é um número válido), só a checagem de intervalo
+> (`novoTamanho <= 40`) que falha, então o `std::cin` continua saudável e
+> as próximas tentativas de embaralhar funcionam normalmente. O programa só
+> não avisa que descartou aquele valor — mas não trava.
